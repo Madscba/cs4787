@@ -74,9 +74,12 @@ def multinomial_logreg_grad_i(x, y, gamma, W):
 # test that the function multinomial_logreg_grad_i is indeed the gradient of multinomial_logreg_loss_i
 
 
-def test_gradient():
+def test_gradient(x, y, gamma, W,eta):
     # TODO students should implement this in Part 1
-
+    f_x = multinomial_logreg_loss_i(x,y,gamma,W)
+    f_x_eta = multinomial_logreg_loss_i(x+eta,y,gamma,W)
+    grad_apprx = ( f_x_eta - f_x ) / eta
+    return grad_apprx
 # compute the error of the classifier
 #
 # Xs        examples          (d * n)
