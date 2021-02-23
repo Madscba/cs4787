@@ -2,7 +2,7 @@ from scipy.special import softmax
 from tqdm import tqdm
 from matplotlib import pyplot
 import os
-import numpy
+import numpy as np
 import scipy
 import matplotlib
 import mnist
@@ -50,7 +50,11 @@ def load_MNIST_dataset():
 # returns   the model cross-entropy loss
 def multinomial_logreg_loss_i(x, y, gamma, W):
     # TODO students should implement this in Part 1
-
+    softmax_input = np.matmul(W,x)
+    y_hat = softmax(softmax_input)
+    l2_reg = (gamma/2) * np.sum(np.dot(W.T,W))
+    loss = - np.dot(y,np.log(y_hat)) + l2_reg
+    return loss
 # compute the gradient of a single example of the multinomial logistic regression objective, with regularization
 #
 # x         training example   (d)
@@ -63,7 +67,10 @@ def multinomial_logreg_loss_i(x, y, gamma, W):
 
 def multinomial_logreg_grad_i(x, y, gamma, W):
     # TODO students should implement this in Part 1
-
+    softmax_input = np.matmul(W,x)
+    un_reg_grad = np.dot((softmax(softmax_input)-y),x.T)
+    l2_reg_grad = gamma * np.sum(W)
+    return un_reg_grad + l2_reg_grad
 # test that the function multinomial_logreg_grad_i is indeed the gradient of multinomial_logreg_loss_i
 
 
