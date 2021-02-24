@@ -91,6 +91,12 @@ def test_gradient(x, y, gamma, W,eta):
 
 def multinomial_logreg_error(Xs, Ys, W):
     # TODO students should implement this
+    incorrect_count = 0
+    for x, y in zip (Xs, Ys):
+        softmax_input = np.matmul(W,x)
+        pred = np.argmax(softmax(softmax_input))
+        incorrect_count += pred[y] == 0
+        
 
 # compute the gradient of the multinomial logistic regression objective, with regularization
 #
@@ -146,7 +152,16 @@ def multinomial_logreg_total_loss(Xs, Ys, gamma, W):
 #               for a total of (num_iters/monitor_freq)+1 models, if num_iters is divisible by monitor_freq.
 def gradient_descent(Xs, Ys, gamma, W0, alpha, num_iters, monitor_freq):
     # TODO students should implement this
-
+    res = []
+    W_i = W0
+    for i in tqdm(range(num_iters)):
+        if (i % monitor_freq == 0):
+            res.append(W_i)
+        diff = -alpha * multinomial_logreg_total_grad(Xs, Ys, gamma, W_i)
+        W_i += diff
+    res.append(W_i)
+    return res
+    
 
 # estimate the error of the classifier
 #
@@ -159,8 +174,19 @@ def gradient_descent(Xs, Ys, gamma, W0, alpha, num_iters, monitor_freq):
 # returns   the estimated model error when sampling with replacement
 def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
     # TODO students should implement this
+    pass
 
 
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     # TODO add code to produce figures
+    print("Xs_tr.shape:", Xs_tr.shape)
+    print("Ys_tr.shape:", Ys_tr.shape)
+    d, n = Xs_tr.shape
+    c, _ = Ys_tr.shape
+    W0 = np.random((c,d))
+    gamma=0.0001
+    alpha=1.0
+    num_iters=10
+    monitor_freq=10
+    gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
