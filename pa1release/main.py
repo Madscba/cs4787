@@ -7,7 +7,7 @@ import scipy
 import matplotlib
 import mnist
 import pickle
-import random
+import random,time
 matplotlib.use('agg')
 
 
@@ -28,12 +28,12 @@ def load_MNIST_dataset():
                                  return_type="numpy", gz=True)
         Xs_tr, Lbls_tr = mnist_data.load_training()
         Xs_tr = Xs_tr.transpose() / 255.0
-        Ys_tr = numpy.zeros((10, 60000))
+        Ys_tr = np.zeros((10, 60000))
         for i in range(60000):
             Ys_tr[Lbls_tr[i], i] = 1.0  # one-hot encode each label
         Xs_te, Lbls_te = mnist_data.load_testing()
         Xs_te = Xs_te.transpose() / 255.0
-        Ys_te = numpy.zeros((10, 10000))
+        Ys_te = np.zeros((10, 10000))
         for i in range(10000):
             Ys_te[Lbls_te[i], i] = 1.0  # one-hot encode each label
 
@@ -55,8 +55,8 @@ def multinomial_logreg_loss_i(x, y, gamma, W):
     softmax_input = np.matmul(W,x)
     y_hat = softmax(softmax_input)
     l2_reg = (gamma/2) * np.sum(np.dot(W.T,W))
-    loss = - np.dot(y,np.log(y_hat)) + l2_reg
-    return loss
+    loss = - np.dot(y.T,np.log(y_hat)) + l2_reg
+    return loss + l2_reg
 # compute the gradient of a single example of the multinomial logistic regression objective, with regularization
 #
 # x         training example   (d)
@@ -70,18 +70,38 @@ def multinomial_logreg_loss_i(x, y, gamma, W):
 def multinomial_logreg_grad_i(x, y, gamma, W):
     # TODO students should implement this in Part 1
     softmax_input = np.matmul(W,x)
-    un_reg_grad = np.matmul((softmax(softmax_input)-y),x)
+    un_reg_grad = np.outer((softmax(softmax_input)-y),x)
     l2_reg_grad = gamma * np.sum(W)
     return un_reg_grad + l2_reg_grad
 # test that the function multinomial_logreg_grad_i is indeed the gradient of multinomial_logreg_loss_i
 
 
-def test_gradient(x, y, gamma, W,eta):
+def test_gradient():
     # TODO students should implement this in Part 1
-    f_x = multinomial_logreg_loss_i(x,y,gamma,W)
-    f_x_eta = multinomial_logreg_loss_i(x+eta,y,gamma,W)
-    grad_apprx = ( f_x_eta - f_x ) / eta
-    return grad_apprx
+    (X, Y, _, _) = load_MNIST_dataset()
+    d, n = X.shape
+    c, _ = Y.shape
+    W = np.random.rand(c,d)
+    gamma,eta = 0.0001, .000005
+
+    gradient_diff = 0
+    gradient_mag = 0
+    for i in range(10):
+        random_idices = random.sample(list(range(n)),1)
+        x = X[:,random_idices]
+        y = Y[:,random_idices]
+        f_x = multinomial_logreg_loss_i(x,y,gamma,W)
+        v = (np.zeros_like(W)+1) *eta
+        f_x_eta = multinomial_logreg_loss_i(x,y,gamma,W+v)
+        grad_apprx = ( f_x_eta - f_x ) / eta
+        real_gradient = multinomial_logreg_grad_i(x,y,gamma,W)
+        aprrox_grad_sum = np.sum( (v.T.dot(real_gradient)))*grad_apprx
+
+        #v.dot(real_gradient) * grad_apprx #approx real_gradient
+        print("real_gradient_sum: {} \t Grad_approx {}".format(aprrox_grad_sum,grad_apprx))
+        gradient_diff += abs(real_gradient-grad_apprx)
+        gradient_mag += np.linalg.norm(real_gradient)
+
 # compute the error of the classifier
 #
 # Xs        examples          (d * n)
@@ -129,10 +149,10 @@ def multinomial_logreg_total_grad(Xs, Ys, gamma, W):
     # loss = - np.dot(Ys,np.log(y_hat)) + l2_reg
     # return loss
 
-    acc = W * 0.0
-    for i in range(n):
-        acc += multinomial_logreg_grad_i(Xs[:, i], Ys[:, i], gamma, W)
-    return acc / n
+    # acc = W * 0.0
+    # for i in range(n):
+    #     acc += multinomial_logreg_grad_i(Xs[:, i], Ys[:, i], gamma, W)
+    # return acc / n
 
 # compute the cross-entropy loss of the classifier
 #
@@ -211,43 +231,77 @@ def gradient_descent(Xs, Ys, gamma, W0, alpha, num_iters, monitor_freq):
 def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
     # TODO students should implement this
     (d, n) = Xs.shape
-    random_idices = random.sample(list(range(n)),nsamples)
-    Xs_subsample = Xs[:,random_idices]
-    Ys_subsample = Ys[:,random_idices]
+    iterations = np.shape(W)[2]
+    exact_errors,est_errs_100,est_errs_1000 = [],[],[]
 
+    t_exact = time.time()
+    for w_iter_no in tqdm(range(iterations)):
+        W_i = W[:,:,w_iter_no]
+        softmax_input = np.matmul(W_i, Xs)
+        pred = np.argmax(softmax(softmax_input, axis=0), axis=0)
+        lookup_vec = np.array(list(enumerate(pred)))
+        correct_predictions = Ys[lookup_vec[..., 1], lookup_vec[..., 0]]
+        exact_error = (n - np.sum(correct_predictions)) / n
+        exact_errors.append(exact_error)
+    t_exact = time.time() - t_exact
 
-    softmax_input = np.matmul(W, Xs_subsample)
-    pred = np.argmax( softmax(softmax_input, axis=0) ,axis=0)
-    lookup_vec = np.array( list(enumerate(pred)) )
-    correct_predictions =  Ys_subsample[lookup_vec[...,1],lookup_vec[...,0]]
-    est_error = (nsamples- np.sum(correct_predictions )  )/ nsamples
+    t_100 = time.time()
+    for w_iter_no in tqdm(range(iterations)):
+        W_i = W[:,:,w_iter_no]
+        rand_idx_100 = random.sample(list(range(n)), nsamples[0])
+        X_subsample_100 = Xs[:, rand_idx_100]
+        Y_subsample_100 = Ys[:, rand_idx_100]
+        softmax_input = np.matmul(W_i, X_subsample_100)
+        pred = np.argmax(softmax(softmax_input, axis=0), axis=0)
+        lookup_vec = np.array(list(enumerate(pred)))
+        correct_predictions = Y_subsample_100[lookup_vec[..., 1], lookup_vec[..., 0]]
+        est_error = (nsamples[0] - np.sum(correct_predictions)) / nsamples[0]
+        est_errs_100.append(est_error)
+    t_100 = time.time()-t_100
 
+    t_1000 = time.time()
+    for w_iter_no in tqdm(range(iterations)):
+        W_i = W[:, :, w_iter_no]
+        rand_idx_1000 = random.sample(list(range(n)), nsamples[1])
+        X_subsample_1000 = Xs[:, rand_idx_1000]
+        Y_subsample_1000 = Ys[:, rand_idx_1000]
+        softmax_input = np.matmul(W_i, X_subsample_1000)
+        pred = np.argmax(softmax(softmax_input, axis=0), axis=0)
+        lookup_vec = np.array(list(enumerate(pred)))
+        correct_predictions = Y_subsample_1000[lookup_vec[..., 1], lookup_vec[..., 0]]
+        est_error = (nsamples[1] - np.sum(correct_predictions)) / nsamples[1]
+        est_errs_1000.append(est_error)
+    t_1000 = time.time()-t_1000
+
+    print("Times were exact: {}, 1000: {}, and 100 {}".format(t_exact,t_1000,t_100))
+
+    matplotlib.pyplot.figure(figsize=(15,10))
+    matplotlib.pyplot.plot(range(101), exact_errors)
+    matplotlib.pyplot.plot(range(101), est_errs_100)
+    matplotlib.pyplot.plot(range(101), est_errs_1000)
+    matplotlib.pyplot.legend(["Exact error","Error 100_sub","Error 1000_sub"])
+    matplotlib.pyplot.title("Exact vs estimate errors with subsampling")
+    matplotlib.pyplot.xlabel("Iteration (model version)")
+    matplotlib.pyplot.ylabel("Error")
+    matplotlib.pyplot.savefig("error_estimate_plot.png")
     return est_error
 
 
 if __name__ == "__main__":
+    test_gradient()
     # np.random.seed(42)
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
-    #
-    # gamma = 0.0001
-    # alpha = 1
-    #W = np.random.normal(0, 1, size=(len(Ys_tr),len(Xs_tr)))#this line can be deleted anytime (it was used for testing)
-    # cur_loss = multinomial_logreg_loss_i(Xs_tr[:,0],Ys_tr[:,0],gamma,W) #this line can be deleted anytime (it was used for testing)
-    # print(cur_loss)
-    #
-    # cur_grad = multinomial_logreg_grad_i(Xs_tr[:,0],Ys_tr[:,0],gamma,W)
-    # approx_grad = test_gradient(Xs_tr[:,0],Ys_tr[:,0],gamma,W,0.05)
-    # print(cur_grad,approx_grad)
-    print("Xs_tr.shape:", Xs_tr.shape)
-    print("Ys_tr.shape:", Ys_tr.shape)
+    # print("Xs_tr.shape:", Xs_tr.shape)
+    # print("Ys_tr.shape:", Ys_tr.shape)
     d, n = Xs_tr.shape
     c, _ = Ys_tr.shape
     W0 = np.random.rand(c,d)
-    test = estimate_multinomial_logreg_error(Xs_tr,Ys_tr,W0,100)
+    a = 2
     gamma=0.0001
     alpha=1.0
     num_iters=10
     monitor_freq=10
-    new_W = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
-    print(new_W)
+    #W_iter = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
+    W_iter = np.repeat(np.random.rand(c,d),101).reshape(c,d,101)
+    test = estimate_multinomial_logreg_error(Xs_tr,Ys_tr,W_iter,[100,1000])
 
