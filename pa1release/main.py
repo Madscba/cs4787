@@ -38,7 +38,7 @@ def load_MNIST_dataset():
             Ys_te[Lbls_te[i], i] = 1.0  # one-hot encode each label
 
         dataset = (Xs_tr, Ys_tr, Xs_te, Ys_te)
-        pickle.dump(dataset, open(PICKLE_FILE, 'wb'))
+        # pickle.dump(dataset, open(PICKLE_FILE, 'wb'))
     return dataset
 
 
@@ -54,9 +54,9 @@ def multinomial_logreg_loss_i(x, y, gamma, W):
     # TODO students should implement this in Part 1
     softmax_input = np.matmul(W,x)
     y_hat = softmax(softmax_input)
-    l2_reg = (gamma/2) * np.sum(np.dot(W.T,W))
+    l2_reg = (gamma/2) * np.linalg.norm(W)**2
     loss = - np.dot(y.T,np.log(y_hat)) + l2_reg
-    return loss + l2_reg
+    return loss
 # compute the gradient of a single example of the multinomial logistic regression objective, with regularization
 #
 # x         training example   (d)
@@ -71,7 +71,7 @@ def multinomial_logreg_grad_i(x, y, gamma, W):
     # TODO students should implement this in Part 1
     softmax_input = np.matmul(W,x)
     un_reg_grad = np.outer((softmax(softmax_input)-y),x)
-    l2_reg_grad = gamma * np.sum(W)
+    l2_reg_grad = gamma * W
     return un_reg_grad + l2_reg_grad
 # test that the function multinomial_logreg_grad_i is indeed the gradient of multinomial_logreg_loss_i
 
@@ -82,7 +82,7 @@ def test_gradient():
     d, n = X.shape
     c, _ = Y.shape
     W = np.random.rand(c,d)
-    gamma,eta = 0.0001, .000005
+    gamma,eta = 0.0001, .00003
 
     gradient_diff = 0
     gradient_mag = 0
@@ -93,9 +93,9 @@ def test_gradient():
         f_x = multinomial_logreg_loss_i(x,y,gamma,W)
         v = (np.zeros_like(W)+1) *eta
         f_x_eta = multinomial_logreg_loss_i(x,y,gamma,W+v)
-        grad_apprx = ( f_x_eta - f_x ) / eta
+        grad_apprx = ( f_x_eta - f_x )
         real_gradient = multinomial_logreg_grad_i(x,y,gamma,W)
-        aprrox_grad_sum = np.sum( (v.T.dot(real_gradient)))*grad_apprx
+        aprrox_grad_sum = (v.flatten().dot(real_gradient.flatten()))
 
         #v.dot(real_gradient) * grad_apprx #approx real_gradient
         print("real_gradient_sum: {} \t Grad_approx {}".format(aprrox_grad_sum,grad_apprx))
@@ -288,21 +288,21 @@ def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
 
 
 if __name__ == "__main__":
-    #test_gradient()
-    np.random.seed(42)
-    (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
-    # print("Xs_tr.shape:", Xs_tr.shape)
-    # print("Ys_tr.shape:", Ys_tr.shape)
-    d, n = Xs_tr.shape
-    c, _ = Ys_tr.shape
-    #W0 = np.random.rand(c,d)
-    W0 = np.random.normal(0,1,size=(c,d))
-    gamma=0.0001
-    alpha=1.0
-    num_iters=1000
-    monitor_freq=10
-    W_iter = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
-    #W_iter = np.repeat(np.random.rand(c,d),101).reshape(c,d,101)
-    test = estimate_multinomial_logreg_error(Xs_tr,Ys_tr,W_iter,[100,1000])
+    test_gradient()
+    # np.random.seed(42)
+    # (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
+    # # print("Xs_tr.shape:", Xs_tr.shape)
+    # # print("Ys_tr.shape:", Ys_tr.shape)
+    # d, n = Xs_tr.shape
+    # c, _ = Ys_tr.shape
+    # #W0 = np.random.rand(c,d)
+    # W0 = np.random.normal(0,1,size=(c,d))
+    # gamma=0.0001
+    # alpha=1.0
+    # num_iters=1000
+    # monitor_freq=10
+    # W_iter = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
+    # #W_iter = np.repeat(np.random.rand(c,d),101).reshape(c,d,101)
+    # test = estimate_multinomial_logreg_error(Xs_tr,Ys_tr,W_iter,[100,1000])
 
     ###REMEMBER TO DELETE ERROR CODE IN GRADIENT DESCENT
