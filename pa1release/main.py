@@ -9,7 +9,7 @@ import mnist
 import pickle
 import random,time
 matplotlib.use('agg')
-
+import copy
 
 mnist_data_directory = os.path.join(os.path.dirname(__file__), "data")
 
@@ -141,8 +141,8 @@ def multinomial_logreg_total_grad(Xs, Ys, gamma, W):
     Ys_hat = softmax(softmax_input,axis=0)
 
     total_grad = np.matmul( (Ys_hat-Ys), Xs.T)
-    total_grad / n
-    return  total_grad
+    total_grad = total_grad / n
+    return  total_grad + gamma * W
     # y_hat = np.sum( softmax(softmax_input,axis=0),axis=0)
     #
     # l2_reg = (gamma/2) * np.sum(np.dot(W.T,W))
@@ -206,16 +206,16 @@ def gradient_descent(Xs, Ys, gamma, W0, alpha, num_iters, monitor_freq):
     # TODO students should implement this
     res = []
     error = []
-    W_i = W0
+    W_i = np.array(W0,copy=True)
     for i in tqdm(range(num_iters)):
         if (i % monitor_freq == 0):
-            res.append(W_i)
+            res.append(copy.deepcopy(W_i))
         diff = -alpha * multinomial_logreg_total_grad(Xs, Ys, gamma, W_i)
         W_i += diff
-        error.append([i,multinomial_logreg_error(Xs,Ys,W_i)])
+        #error.append([i,multinomial_logreg_error(Xs,Ys,W_i)])
     res.append(W_i)
-    matplotlib.pyplot.plot(np.array(error)[:, 0], np.array(error)[:, 1])
-    matplotlib.pyplot.savefig("mygraph.png")
+    #matplotlib.pyplot.plot(np.array(error)[:, 0], np.array(error)[:, 1])
+    #matplotlib.pyplot.savefig("mygraph.png")
     return res
 
 
@@ -231,12 +231,12 @@ def gradient_descent(Xs, Ys, gamma, W0, alpha, num_iters, monitor_freq):
 def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
     # TODO students should implement this
     (d, n) = Xs.shape
-    iterations = np.shape(W)[2]
+    iterations = np.shape(W)[0]
     exact_errors,est_errs_100,est_errs_1000 = [],[],[]
 
     t_exact = time.time()
     for w_iter_no in tqdm(range(iterations)):
-        W_i = W[:,:,w_iter_no]
+        W_i = W[w_iter_no]
         softmax_input = np.matmul(W_i, Xs)
         pred = np.argmax(softmax(softmax_input, axis=0), axis=0)
         lookup_vec = np.array(list(enumerate(pred)))
@@ -247,7 +247,7 @@ def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
 
     t_100 = time.time()
     for w_iter_no in tqdm(range(iterations)):
-        W_i = W[:,:,w_iter_no]
+        W_i = W[w_iter_no]
         rand_idx_100 = random.sample(list(range(n)), nsamples[0])
         X_subsample_100 = Xs[:, rand_idx_100]
         Y_subsample_100 = Ys[:, rand_idx_100]
@@ -261,7 +261,7 @@ def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
 
     t_1000 = time.time()
     for w_iter_no in tqdm(range(iterations)):
-        W_i = W[:, :, w_iter_no]
+        W_i = W[w_iter_no]
         rand_idx_1000 = random.sample(list(range(n)), nsamples[1])
         X_subsample_1000 = Xs[:, rand_idx_1000]
         Y_subsample_1000 = Ys[:, rand_idx_1000]
@@ -275,10 +275,10 @@ def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
 
     print("Times were exact: {}, 1000: {}, and 100 {}".format(t_exact,t_1000,t_100))
 
-    matplotlib.pyplot.figure(figsize=(15,10))
-    matplotlib.pyplot.plot(range(101), exact_errors)
-    matplotlib.pyplot.plot(range(101), est_errs_100)
-    matplotlib.pyplot.plot(range(101), est_errs_1000)
+    matplotlib.pyplot.figure(figsize=(8,6))
+    matplotlib.pyplot.plot(range(iterations), exact_errors)
+    matplotlib.pyplot.plot(range(iterations), est_errs_100)
+    matplotlib.pyplot.plot(range(iterations), est_errs_1000)
     matplotlib.pyplot.legend(["Exact error","Error 100_sub","Error 1000_sub"])
     matplotlib.pyplot.title("Exact vs estimate errors with subsampling")
     matplotlib.pyplot.xlabel("Iteration (model version)")
@@ -288,20 +288,21 @@ def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
 
 
 if __name__ == "__main__":
-    test_gradient()
-    # np.random.seed(42)
+    #test_gradient()
+    np.random.seed(42)
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     # print("Xs_tr.shape:", Xs_tr.shape)
     # print("Ys_tr.shape:", Ys_tr.shape)
     d, n = Xs_tr.shape
     c, _ = Ys_tr.shape
-    W0 = np.random.rand(c,d)
-    a = 2
+    #W0 = np.random.rand(c,d)
+    W0 = np.random.normal(0,1,size=(c,d))
     gamma=0.0001
     alpha=1.0
-    num_iters=10
+    num_iters=1000
     monitor_freq=10
-    #W_iter = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
-    W_iter = np.repeat(np.random.rand(c,d),101).reshape(c,d,101)
+    W_iter = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
+    #W_iter = np.repeat(np.random.rand(c,d),101).reshape(c,d,101)
     test = estimate_multinomial_logreg_error(Xs_tr,Ys_tr,W_iter,[100,1000])
 
+    ###REMEMBER TO DELETE ERROR CODE IN GRADIENT DESCENT
