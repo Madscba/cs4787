@@ -82,26 +82,33 @@ def test_gradient():
     d, n = X.shape
     c, _ = Y.shape
     W = np.random.rand(c,d)
-    gamma,eta = 0.0001, .00003
-
-    gradient_diff = 0
-    gradient_mag = 0
+    gamma= 0.0001
+    eta_vals = [10**i for i in range(-1,-11,-1)]
+    eta_avg_diff = []
     for i in range(10):
-        random_idices = random.sample(list(range(n)),1)
-        x = X[:,random_idices]
-        y = Y[:,random_idices]
-        f_x = multinomial_logreg_loss_i(x,y,gamma,W)
-        v = (np.zeros_like(W)+1) *eta
-        f_x_eta = multinomial_logreg_loss_i(x,y,gamma,W+v)
-        grad_apprx = ( f_x_eta - f_x )
-        real_gradient = multinomial_logreg_grad_i(x,y,gamma,W)
-        aprrox_grad_sum = (v.flatten().dot(real_gradient.flatten()))
+        eta = eta_vals[i]
+        gradient_diff = 0
+        for j in range(100):
+            random_idices = random.sample(list(range(n)),1)
+            x = X[:,random_idices]
+            y = Y[:,random_idices]
+            f_x = multinomial_logreg_loss_i(x,y,gamma,W)
+            v = (np.zeros_like(W)+1) *eta
+            f_x_eta = multinomial_logreg_loss_i(x,y,gamma,W+v)
+            grad_apprx = ( f_x_eta - f_x )
+            real_gradient = multinomial_logreg_grad_i(x,y,gamma,W)
+            aprrox_grad_sum = (v.flatten().dot(real_gradient.flatten()))
+            gradient_diff = abs(aprrox_grad_sum-grad_apprx[0][0])
+        average_diff = gradient_diff / 10
+        print("Average difference {} for an eta value of {} ".format(average_diff,eta))
+        eta_avg_diff.append(average_diff)
 
-        #v.dot(real_gradient) * grad_apprx #approx real_gradient
-        print("real_gradient_sum: {} \t Grad_approx {}".format(aprrox_grad_sum,grad_apprx))
-        gradient_diff += abs(real_gradient-grad_apprx)
-        gradient_mag += np.linalg.norm(real_gradient)
-
+    # matplotlib.pyplot.loglog(eta_vals, eta_avg_diff)
+    # matplotlib.pyplot.scatter(eta_vals, eta_avg_diff,marker='X')
+    # matplotlib.pyplot.title("Gradient approximation with different eta values")
+    # matplotlib.pyplot.xlabel("eta values")
+    # matplotlib.pyplot.ylabel("Average difference between gradient approximation and exact")
+    # matplotlib.pyplot.savefig("eta_avg_dist_plot.png")
 # compute the error of the classifier
 #
 # Xs        examples          (d * n)
@@ -174,19 +181,7 @@ def multinomial_logreg_total_loss(Xs, Ys, gamma, W):
 
     total_loss = - np.sum( Ys * np.log(Ys_hat)) / n
     return total_loss
-    #
-    # res = multinomial_logreg_loss_i(Xs,Ys,gamma, W)
-    # np.sum(res) / n
-    #
-    # acc = 0.0
-    # for i in range(n):
-    #     acc += multinomial_logreg_loss_i(Xs[:, i], Ys[:, i], gamma, W)
-    #
-    #
-    # est1 = acc / n
-    # if np.sumP(est1-total_loss) < 0.001:
-    #     print("BAD")
-    # return total_loss
+
 
 
 # run gradient descent on a multinomial logistic regression objective, with regularization
@@ -274,35 +269,36 @@ def estimate_multinomial_logreg_error(Xs, Ys, W, nsamples):
     t_1000 = time.time()-t_1000
 
     print("Times were exact: {}, 1000: {}, and 100 {}".format(t_exact,t_1000,t_100))
+    #
+    # matplotlib.pyplot.figure(figsize=(8,6))
+    # matplotlib.pyplot.plot(range(iterations), exact_errors)
+    # matplotlib.pyplot.plot(range(iterations), est_errs_100)
+    # matplotlib.pyplot.plot(range(iterations), est_errs_1000)
+    # matplotlib.pyplot.legend(["Exact error","Error 100_sub","Error 1000_sub"])
+    # matplotlib.pyplot.title("Exact vs estimate errors with subsampling")
+    # matplotlib.pyplot.xlabel("Iteration (model version)")
+    # matplotlib.pyplot.ylabel("Error")
+    # matplotlib.pyplot.savefig("error_estimate_plot.png")
 
-    matplotlib.pyplot.figure(figsize=(8,6))
-    matplotlib.pyplot.plot(range(iterations), exact_errors)
-    matplotlib.pyplot.plot(range(iterations), est_errs_100)
-    matplotlib.pyplot.plot(range(iterations), est_errs_1000)
-    matplotlib.pyplot.legend(["Exact error","Error 100_sub","Error 1000_sub"])
-    matplotlib.pyplot.title("Exact vs estimate errors with subsampling")
-    matplotlib.pyplot.xlabel("Iteration (model version)")
-    matplotlib.pyplot.ylabel("Error")
-    matplotlib.pyplot.savefig("error_estimate_plot.png")
+    # print("mean 100 {} mean 1000{} std 100{} std 1000{}".format(np.mean(abs(exact_error-est_errs_100)),np.mean(abs(exact_error-est_errs_1000)),np.std(exact_error-est_errs_100),np.std(exact_error-est_errs_1000)))
     return est_error
 
 
 if __name__ == "__main__":
-    test_gradient()
-    # np.random.seed(42)
-    # (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
-    # # print("Xs_tr.shape:", Xs_tr.shape)
-    # # print("Ys_tr.shape:", Ys_tr.shape)
-    # d, n = Xs_tr.shape
-    # c, _ = Ys_tr.shape
-    # #W0 = np.random.rand(c,d)
-    # W0 = np.random.normal(0,1,size=(c,d))
-    # gamma=0.0001
-    # alpha=1.0
-    # num_iters=1000
-    # monitor_freq=10
-    # W_iter = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
-    # #W_iter = np.repeat(np.random.rand(c,d),101).reshape(c,d,101)
-    # test = estimate_multinomial_logreg_error(Xs_tr,Ys_tr,W_iter,[100,1000])
+    # test_gradient()
+    np.random.seed(42)
+    (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
+    # print("Xs_tr.shape:", Xs_tr.shape)
+    # print("Ys_tr.shape:", Ys_tr.shape)
+    d, n = Xs_tr.shape
+    c, _ = Ys_tr.shape
+    #W0 = np.random.rand(c,d)
+    W0 = np.random.normal(0,1,size=(c,d))
+    gamma=0.0001
+    alpha=1.0
+    num_iters=1000
+    monitor_freq=10
+    W_iter = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha, num_iters, monitor_freq)
+    #W_iter = np.repeat(np.random.rand(c,d),101).reshape(c,d,101)
+    test = estimate_multinomial_logreg_error(Xs_tr,Ys_tr,W_iter,[100,1000])
 
-    ###REMEMBER TO DELETE ERROR CODE IN GRADIENT DESCENT
