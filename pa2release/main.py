@@ -165,7 +165,16 @@ def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
 #
 # returns         a list of model parameters, one every "monitor_period" batches
 def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
-    pass
+    _, n = Xs.shape
+    W = copy.deepcopy(W0)
+    res = []
+    for t in num_epochs:
+        for i in range(n/B):
+            ii = list(range(i * B, i * B + B))
+            W = W + alpha*multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
+            if ((t*(n/B)+i) % monitor_period == 0):
+                res.append(copy.deepcopy(W))
+    return res
     # TODO students should implement this
 
 
