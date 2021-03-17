@@ -94,10 +94,13 @@ def multinomial_logreg_error(Xs, Ys, W):
 # returns         a list of model parameters, one every "monitor_period" iterations
 def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
     W = copy.deepcopy(W0)
-    for _ in num_epochs:
+    res = []
+    for t in num_epochs:
         datapoint_idx = random.sample(list(range(n)),1)
-        W = W + alpha*multinomial_logreg_grad_i(x, y, datapoint_idx, gamma, W)
-    return W
+        W = W + alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
+        if (t % monitor_period == 0):
+            res.append(copy.deepcopy(W))
+    return res
     # TODO students should implement this
 
 
@@ -113,7 +116,15 @@ def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_pe
 #
 # returns         a list of model parameters, one every "monitor_period" iterations
 def sgd_sequential_scan(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
-    pass
+    W = copy.deepcopy(W0)
+    _, n = Xs.shape
+    res = []
+    for t in num_epochs:
+        for i in range(n):
+            W = W + alpha*multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
+            if ((t*n+i) % monitor_period == 0):
+                res.append(copy.deepcopy(W))
+    return res
     # TODO students should implement this
 
 
@@ -130,7 +141,14 @@ def sgd_sequential_scan(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
 #
 # returns         a list of model parameters, one every "monitor_period" batches
 def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
-    pass
+    W = copy.deepcopy(W0)
+    res = []
+    for t in num_epochs:
+        datapoint_idx = random.sample(list(range(n)),B)
+        W = W + alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
+        if (t % monitor_period == 0):
+            res.append(copy.deepcopy(W))
+    return res
     # TODO students should implement this
 
 
