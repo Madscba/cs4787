@@ -1,5 +1,5 @@
 import os
-import numpy
+import numpy as np
 from numpy import random
 import scipy
 import matplotlib
@@ -23,18 +23,18 @@ def load_MNIST_dataset():
         mnist_data = mnist.MNIST(mnist_data_directory, return_type="numpy", gz=True)
         Xs_tr, Lbls_tr = mnist_data.load_training();
         Xs_tr = Xs_tr.transpose() / 255.0
-        Ys_tr = numpy.zeros((10, 60000))
+        Ys_tr = np.zeros((10, 60000))
         for i in range(60000):
             Ys_tr[Lbls_tr[i], i] = 1.0  # one-hot encode each label
-        Xs_tr = numpy.ascontiguousarray(Xs_tr)
-        Ys_tr = numpy.ascontiguousarray(Ys_tr)
+        Xs_tr = np.ascontiguousarray(Xs_tr)
+        Ys_tr = np.ascontiguousarray(Ys_tr)
         Xs_te, Lbls_te = mnist_data.load_testing();
         Xs_te = Xs_te.transpose() / 255.0
-        Ys_te = numpy.zeros((10, 10000))
+        Ys_te = np.zeros((10, 10000))
         for i in range(10000):
             Ys_te[Lbls_te[i], i] = 1.0  # one-hot encode each label
-        Xs_te = numpy.ascontiguousarray(Xs_te)
-        Ys_te = numpy.ascontiguousarray(Ys_te)
+        Xs_te = np.ascontiguousarray(Xs_te)
+        Ys_te = np.ascontiguousarray(Ys_te)
         dataset = (Xs_tr, Ys_tr, Xs_te, Ys_te)
         pickle.dump(dataset, open(PICKLE_FILE, 'wb'))
     return dataset
@@ -50,6 +50,13 @@ def load_MNIST_dataset():
 #
 # returns   the average gradient of the regularized loss of the examples in vector ii with respect to the model parameters
 def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
+    x = Xs[:, ii] #choose the datapoints
+    y = Ys[:, ii] #choose the datapoints
+
+    softmax_input = np.matmul(W,x)
+    un_reg_grad = np.matmul((softmax(softmax_input)-y),x.T)
+    l2_reg_grad = gamma * W
+    return (un_reg_grad + l2_reg_grad) / len(ii) #Average over the ii samples
     # TODO students should implement this
 
 
@@ -85,6 +92,7 @@ def multinomial_logreg_error(Xs, Ys, W):
 #
 # returns         a list of model parameters, one every "monitor_period" iterations
 def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
+    pass
     # TODO students should implement this
 
 
@@ -100,6 +108,7 @@ def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_pe
 #
 # returns         a list of model parameters, one every "monitor_period" iterations
 def sgd_sequential_scan(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
+    pass
     # TODO students should implement this
 
 
@@ -116,6 +125,7 @@ def sgd_sequential_scan(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
 #
 # returns         a list of model parameters, one every "monitor_period" batches
 def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
+    pass
     # TODO students should implement this
 
 
@@ -132,9 +142,16 @@ def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
 #
 # returns         a list of model parameters, one every "monitor_period" batches
 def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
+    pass
     # TODO students should implement this
 
 
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
+    d, n = Xs_tr.shape
+    c, _ = Ys_tr.shape
+    gamma = 0.05
+    W0 = np.random.normal(0, 1, size=(c, d))
+    test = multinomial_logreg_grad_i(Xs_tr,Ys_tr,[3,40,66],gamma,W0)
+    pass
     # TODO add code to produce figures
