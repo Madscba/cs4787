@@ -13,6 +13,7 @@ mnist_data_directory = os.path.join(os.path.dirname(__file__), "data")
 # TODO add any additional imports and global variables
 from scipy.special import softmax
 from tqdm import tqdm
+import copy
 
 def load_MNIST_dataset():
     PICKLE_FILE = os.path.join(mnist_data_directory, "MNIST.pickle")
@@ -92,7 +93,11 @@ def multinomial_logreg_error(Xs, Ys, W):
 #
 # returns         a list of model parameters, one every "monitor_period" iterations
 def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
-    pass
+    W = copy.deepcopy(W0)
+    for _ in num_epochs:
+        datapoint_idx = random.sample(list(range(n)),1)
+        W = W + alpha*multinomial_logreg_grad_i(x, y, datapoint_idx, gamma, W)
+    return W
     # TODO students should implement this
 
 
