@@ -11,7 +11,8 @@ from matplotlib import pyplot
 mnist_data_directory = os.path.join(os.path.dirname(__file__), "data")
 
 # TODO add any additional imports and global variables
-
+from scipy.special import softmax
+from tqdm import tqdm
 
 def load_MNIST_dataset():
     PICKLE_FILE = os.path.join(mnist_data_directory, "MNIST.pickle")
@@ -60,6 +61,15 @@ def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
 #
 # returns   the model error as a fraction of incorrect labels (a number between 0 and 1)
 def multinomial_logreg_error(Xs, Ys, W):
+    incorrect_count = 0
+    Xs = Xs.T
+    Ys = Ys.T
+    for x, y in zip(Xs, Ys):
+        softmax_input = np.matmul(W, x)
+        pred = np.argmax(softmax(softmax_input))
+
+        incorrect_count += 1 if y[pred] == 0 else 0
+    return incorrect_count / np.shape(Xs)[0]
     # TODO students should use their implementation from programming assignment 1
 
 
