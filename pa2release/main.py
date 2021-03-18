@@ -186,40 +186,41 @@ def plot_function(errors_tr,errors_te):
     errors = [errors_tr,errors_te]
     iterations = errors_tr.shape[1]
     for i in range(2):
-        for j in range(errors_tr.shape[0]):
-            matplotlib.pyplot.plot(range(iterations), errors[i][j,:])
+        matplotlib.pyplot.close()
         matplotlib.pyplot.figure(figsize=(8, 6))
-        matplotlib.pyplot.legend(["Training error","Test error"])
-        matplotlib.pyplot.title("Training vs Test errors")
+        matplotlib.pyplot.title("{}".format(["Training", "Test errors"][i]))
         matplotlib.pyplot.xlabel("Iteration (model version)")
         matplotlib.pyplot.ylabel("Error")
-        matplotlib.pyplot.legend(["Algo1","Algo2","Algo3","Algo4"])
+
+        for j in range(errors_tr.shape[0]):
+            matplotlib.pyplot.plot(range(iterations), errors[i][j,:])
+        matplotlib.pyplot.legend(["Algo1", "Algo2", "Algo3", "Algo4"])
         matplotlib.pyplot.savefig("error_estimate_plot_{}.png".format(["train","test"][i]))
         matplotlib.pyplot.show()
 
 def system_evaluation():
     iterations = 5
-    t_1 = time.clock()
+    t_1 = time.time()
     for i in tqdm(range(iterations)):
         alg1_w = stochastic_gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
-    t_1 = time.clock() - t_1
+    t_1 = time.time() - t_1
 
-    t_2 = time.clock()
+    t_2 = time.time()
     for i in tqdm(range(iterations)):
         alg2_w = sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
-    t_2 = time.clock() - t_2
+    t_2 = time.time() - t_2
 
-    t_3 = time.clock()
+    t_3 = time.time()
     for i in tqdm(range(iterations)):
         alg3_w = sgd_minibatch(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
-    t_3 = time.clock() - t_3
+    t_3 = time.time() - t_3
 
-    t_4 = time.clock()
+    t_4 = time.time()
     for i in tqdm(range(iterations)):
         alg4_w = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch,monitor_period_alg34)
-    t_4 = time.clock() - t_4
+    t_4 = time.time() - t_4
 
-    print("1:{},2:{},3:{},4:{}".format(t_1,t_2,t_3,t_4))
+    print("Time for algo1:{}. Time for algo2:{}. Time for algo3:{}. Time for algo4:{}".format(t_1/iterations,t_2/iterations,t_3/iterations,t_4/iterations))
 
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
