@@ -198,6 +198,23 @@ def plot_function(errors_tr,errors_te):
         matplotlib.pyplot.savefig("error_estimate_plot_{}.png".format(["train","test"][i]))
         matplotlib.pyplot.show()
 
+def plotSGDAlphaVariations(W0_err, sgd_alpha_variation_tr_errors, metadata):
+    n, mp_alg12, n_epoch = metadata['n'], metadata['mp_alg12'], metadata['num_epoch']
+    alpha12, alpha_e1, alpha_e2 = metadata['alpha12'], metadata['alphaExploration1'], metadata['alphaExploration2']
+    alg1_tr_err, sgd_ver2_tr_err, sgd_ver3_tr_err = sgd_alpha_variation_tr_errors
+    matplotlib.pyplot.figure(figsize=(8, 6))
+    matplotlib.pyplot.plot([0] + list(range(1, int(n/mp_alg12*n_epoch)+1, int(n/mp_alg12))), [W0_err] + alg1_tr_err)
+    matplotlib.pyplot.plot([0] + list(range(1, int(n/mp_alg12*n_epoch)+1, int(n/mp_alg12))), [W0_err] + sgd_ver2_tr_err)
+    matplotlib.pyplot.plot([0] + list(range(1, int(n/mp_alg12*n_epoch)+1, int(n/mp_alg12))), [W0_err] + sgd_ver3_tr_err)
+    matplotlib.pyplot.title("Training Errors of SGD with Varying Learning Rates")
+    matplotlib.pyplot.legend(["Training Error w/ alpha={}".format(alpha12),
+                              "Training error w/ alpha={}".format(alpha_e1),
+                              "Training error w/ alpha={}".format(alpha_e2)])
+    matplotlib.pyplot.xlabel("Iteration (model version)")
+    matplotlib.pyplot.ylabel("Error")
+    matplotlib.pyplot.savefig("pt2_tr_error_w_diff_alphas.png")
+    matplotlib.pyplot.show()
+
 def system_evaluation():
     iterations = 5
     t_1 = time.time()
@@ -234,26 +251,49 @@ if __name__ == "__main__":
     monitor_period_alg34 = 100
     batch_size = 60
     W0 = np.random.normal(0, 1, size=(c, d))
+    W0_err = multinomial_logreg_error(Xs_tr,Ys_tr, W0)
+    metadata = {'d': d, 
+                'n' : n, 
+                'c' : c, 
+                'gamma' : gamma, 
+                'alpha12' : alpha12, 
+                'alpha34' : alpha34,
+                'num_epoch' : num_epoch,
+                'mp_alg12' : monitor_period_alg12,
+                'mp_alg34' : monitor_period_alg34,
+                'W0' : W0,
+                'W0_err' : W0_err}
     alg1_w = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alpha12,num_epoch,monitor_period_alg12)
-    alg2_w = sgd_sequential_scan(Xs_tr,Ys_tr,gamma,W0,alpha12,num_epoch,monitor_period_alg12)
+    # alg2_w = sgd_sequential_scan(Xs_tr,Ys_tr,gamma,W0,alpha12,num_epoch,monitor_period_alg12)
 
 
-    alg3_w = sgd_minibatch(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
-    alg4_w = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
+    # alg3_w = sgd_minibatch(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
+    # alg4_w = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
+  
+    # errors_tr = np.zeros((4,10*num_epoch))
+    # errors_te = np.zeros((4,10*num_epoch))
 
-    errors_tr = np.zeros((4,10*num_epoch))
-    errors_te = np.zeros((4,10*num_epoch))
+    # alg_weights = [alg1_w,alg2_w,alg3_w,alg4_w]
+    # for i in tqdm(range(4)):
+    #     errors_tr[i,:] = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in alg_weights[i]]
+    #     errors_te[i,:] = [multinomial_logreg_error(Xs_te,Ys_te, w) for w in alg_weights[i]]
 
-    alg_weights = [alg1_w,alg2_w,alg3_w,alg4_w]
-    for i in tqdm(range(4)):
-        errors_tr[i,:] = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in alg_weights[i]]
-        errors_te[i,:] = [multinomial_logreg_error(Xs_te,Ys_te, w) for w in alg_weights[i]]
+    # plot_function(errors_tr,errors_te)
 
-    plot_function(errors_tr,errors_te)
-
-    test = multinomial_logreg_grad_i(Xs_tr,Ys_tr,[3,40,66],gamma,W0)
-    pass
-    # TODO add code to produce figures
+    # test = multinomial_logreg_grad_i(Xs_tr,Ys_tr,[3,40,66],gamma,W0)
 
     ####Part 2 Exploration
+    # Running SGD with an alpha value of 0.01
+    sgd_ver1_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in alg1_w]
+    alphaExploration1 = 0.005
+    sgd_ver2 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alphaExploration1,num_epoch,monitor_period_alg12)
+    sgd_ver2_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver2]
+    alphaExploration2 = 0.01
+    sgd_ver3 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alphaExploration2,num_epoch,monitor_period_alg12)
+    sgd_ver3_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver3]
+    sgd_alpha_variation_tr_errors = [sgd_ver1_tr_error, sgd_ver2_tr_error, sgd_ver3_tr_error]
+    metadata['alphaExploration1'] = alphaExploration1
+    metadata['alphaExploration2'] = alphaExploration2
+    plotSGDAlphaVariations(W0_err, sgd_alpha_variation_tr_errors, metadata)
+
 
