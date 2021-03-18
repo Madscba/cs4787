@@ -52,7 +52,7 @@ def load_MNIST_dataset():
 # returns   the average gradient of the regularized loss of the examples in vector ii with respect to the model parameters
 def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
     x = Xs[:, ii] #choose the datapoints
-    y = Ys[:, ii] #choose the datapoints
+    y = Ys[:, ii] #choose the corresponding targets
 
     softmax_input = np.matmul(W,x)
     un_reg_grad = np.matmul((softmax(softmax_input)-y),x.T)
@@ -100,7 +100,7 @@ def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_pe
     for t in tqdm(range(num_epochs_corrected)):
         datapoint_idx = random.sample(list(range(n)),1)
         W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
-        if (t % monitor_period == 0):
+        if (t % monitor_period == monitor_period-1):
             res.append(copy.deepcopy(W))
     return res
     # TODO students should implement this
@@ -124,7 +124,7 @@ def sgd_sequential_scan(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
     for t in tqdm(range(num_epochs)):
         for i in range(n):
             W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
-            if ((t*n+i) % monitor_period == 0):
+            if ((t*n+i) % monitor_period == monitor_period-1):
                 res.append(copy.deepcopy(W))
     return res
     # TODO students should implement this
@@ -150,7 +150,7 @@ def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
     for t in tqdm(range(num_epochs_corrected)):
         datapoint_idx = random.sample(list(range(n)),B)
         W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
-        if (t % monitor_period == 0):
+        if (t % monitor_period == monitor_period-1):
             res.append(copy.deepcopy(W))
     return res
     # TODO students should implement this
@@ -176,7 +176,7 @@ def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monit
         for i in range(int(n/B)):
             ii = list(range(i * B, i * B + B))
             W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
-            if ((t*(n/B)+i) % monitor_period == 0):
+            if ((t*(n/B)+i) % monitor_period == monitor_period-1):
                 temp_W = copy.deepcopy(W)
                 res.append(copy.deepcopy(temp_W))
     return res
@@ -185,16 +185,18 @@ def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monit
 def plot_function(errors_tr,errors_te):
     errors = [errors_tr,errors_te]
     iterations = errors_tr.shape[1]
+    epochs = iterations/10
+    plot_markers = ['o','+','v','x']
     for i in range(2):
         matplotlib.pyplot.close()
-        matplotlib.pyplot.figure(figsize=(8, 6))
+        matplotlib.pyplot.figure(figsize=(9, 7))
         matplotlib.pyplot.title("{}".format(["Training", "Test errors"][i]))
-        matplotlib.pyplot.xlabel("Iteration (model version)")
+        matplotlib.pyplot.xlabel("Number of epochs (model version)")
         matplotlib.pyplot.ylabel("Error")
 
         for j in range(errors_tr.shape[0]):
-            matplotlib.pyplot.plot(range(iterations), errors[i][j,:])
-        matplotlib.pyplot.legend(["Algo1", "Algo2", "Algo3", "Algo4"])
+            matplotlib.pyplot.plot(np.linspace(.1,epochs,num=iterations), errors[i][j,:],marker=plot_markers[j],markersize=6,linestyle="--")
+        matplotlib.pyplot.legend(["SGD_random_sampling", "SGD_sequential_sampling", "Minibatch_SGD_random_sampling", "Mini_batch_SGD_sequential_sampling"])
         matplotlib.pyplot.savefig("error_estimate_plot_{}.png".format(["train","test"][i]))
         matplotlib.pyplot.show()
 
@@ -216,29 +218,30 @@ def plotSGDAlphaVariations(W0_err, sgd_alpha_variation_tr_errors, metadata):
     matplotlib.pyplot.show()
 
 def system_evaluation():
+    print("###System_Evalualtion###")
     iterations = 5
     t_1 = time.time()
-    for i in tqdm(range(iterations)):
-        alg1_w = stochastic_gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
+    for _ in tqdm(range(iterations)):
+        stochastic_gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
     t_1 = time.time() - t_1
 
     t_2 = time.time()
-    for i in tqdm(range(iterations)):
-        alg2_w = sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
+    for _ in tqdm(range(iterations)):
+        sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
     t_2 = time.time() - t_2
 
     t_3 = time.time()
-    for i in tqdm(range(iterations)):
-        alg3_w = sgd_minibatch(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
+    for _ in tqdm(range(iterations)):
+        sgd_minibatch(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
     t_3 = time.time() - t_3
 
     t_4 = time.time()
-    for i in tqdm(range(iterations)):
-        alg4_w = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch,monitor_period_alg34)
+    for _ in tqdm(range(iterations)):
+        sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch,monitor_period_alg34)
     t_4 = time.time() - t_4
 
-    print("Time for algo1:{}. Time for algo2:{}. Time for algo3:{}. Time for algo4:{}".format(t_1/iterations,t_2/iterations,t_3/iterations,t_4/iterations))
-
+    print("Time for algo1:{}.\n Time for algo2:{}.\n Time for algo3:{}.\n Time for algo4:{}".format(t_1/iterations,t_2/iterations,t_3/iterations,t_4/iterations))
+    return [t_1,t_2,t_3,t_4]
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     d, n = Xs_tr.shape
@@ -246,7 +249,7 @@ if __name__ == "__main__":
     gamma = 0.0001
     alpha12 = 0.001
     alpha34 = 0.05
-    num_epoch = 1
+    num_epoch = 10
     monitor_period_alg12 = 6000
     monitor_period_alg34 = 100
     batch_size = 60
@@ -264,36 +267,39 @@ if __name__ == "__main__":
                 'W0' : W0,
                 'W0_err' : W0_err}
     alg1_w = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alpha12,num_epoch,monitor_period_alg12)
-    # alg2_w = sgd_sequential_scan(Xs_tr,Ys_tr,gamma,W0,alpha12,num_epoch,monitor_period_alg12)
+    alg2_w = sgd_sequential_scan(Xs_tr,Ys_tr,gamma,W0,alpha12,num_epoch,monitor_period_alg12)
 
 
-    # alg3_w = sgd_minibatch(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
-    # alg4_w = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
+    alg3_w = sgd_minibatch(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
+    alg4_w = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
   
-    # errors_tr = np.zeros((4,10*num_epoch))
-    # errors_te = np.zeros((4,10*num_epoch))
+    errors_tr = np.zeros((4,10*num_epoch))
+    errors_te = np.zeros((4,10*num_epoch))
 
-    # alg_weights = [alg1_w,alg2_w,alg3_w,alg4_w]
-    # for i in tqdm(range(4)):
-    #     errors_tr[i,:] = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in alg_weights[i]]
-    #     errors_te[i,:] = [multinomial_logreg_error(Xs_te,Ys_te, w) for w in alg_weights[i]]
+    alg_weights = [alg1_w,alg2_w,alg3_w,alg4_w]
+    for i in tqdm(range(4)):
+        errors_tr[i,:] = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in alg_weights[i]]
+        errors_te[i,:] = [multinomial_logreg_error(Xs_te,Ys_te, w) for w in alg_weights[i]]
 
-    # plot_function(errors_tr,errors_te)
+    plot_function(errors_tr,errors_te)
 
     # test = multinomial_logreg_grad_i(Xs_tr,Ys_tr,[3,40,66],gamma,W0)
 
     ####Part 2 Exploration
     # Running SGD with an alpha value of 0.01
-    sgd_ver1_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in alg1_w]
-    alphaExploration1 = 0.005
-    sgd_ver2 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alphaExploration1,num_epoch,monitor_period_alg12)
-    sgd_ver2_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver2]
-    alphaExploration2 = 0.01
-    sgd_ver3 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alphaExploration2,num_epoch,monitor_period_alg12)
-    sgd_ver3_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver3]
-    sgd_alpha_variation_tr_errors = [sgd_ver1_tr_error, sgd_ver2_tr_error, sgd_ver3_tr_error]
-    metadata['alphaExploration1'] = alphaExploration1
-    metadata['alphaExploration2'] = alphaExploration2
-    plotSGDAlphaVariations(W0_err, sgd_alpha_variation_tr_errors, metadata)
+    # sgd_ver1_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in alg1_w]
+    # alphaExploration1 = 0.005
+    # sgd_ver2 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alphaExploration1,num_epoch,monitor_period_alg12)
+    # sgd_ver2_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver2]
+    # alphaExploration2 = 0.01
+    # sgd_ver3 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alphaExploration2,num_epoch,monitor_period_alg12)
+    # sgd_ver3_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver3]
+    # sgd_alpha_variation_tr_errors = [sgd_ver1_tr_error, sgd_ver2_tr_error, sgd_ver3_tr_error]
+    # metadata['alphaExploration1'] = alphaExploration1
+    # metadata['alphaExploration2'] = alphaExploration2
+    # plotSGDAlphaVariations(W0_err, sgd_alpha_variation_tr_errors, metadata)
 
 
+    ####Part 3 System Evaluation
+    system_evaluation()
+    a = 2
