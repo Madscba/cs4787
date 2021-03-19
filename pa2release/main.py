@@ -96,7 +96,7 @@ def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_pe
     _, n = Xs.shape
     num_epochs_corrected = num_epochs * n
     W = copy.deepcopy(W0)
-    res = []
+    res = [copy.deepcopy(W0)]
     for t in tqdm(range(num_epochs_corrected)):
         datapoint_idx = random.sample(list(range(n)),1)
         W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
@@ -120,7 +120,7 @@ def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_pe
 def sgd_sequential_scan(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
     W = copy.deepcopy(W0)
     _, n = Xs.shape
-    res = []
+    res = [copy.deepcopy(W0)]
     for t in tqdm(range(num_epochs)):
         for i in range(n):
             W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
@@ -146,7 +146,7 @@ def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
     _, n = Xs.shape
     num_epochs_corrected = int(num_epochs * (n/B)) #10*60000/60 = 10000
     W = copy.deepcopy(W0)
-    res = []
+    res = [copy.deepcopy(W0)]
     for t in tqdm(range(num_epochs_corrected)):
         datapoint_idx = random.sample(list(range(n)),B)
         W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
@@ -171,7 +171,7 @@ def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
 def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
     _, n = Xs.shape
     W = copy.deepcopy(W0)
-    res = []
+    res = [copy.deepcopy(W0)]
     for t in tqdm(range(num_epochs)):
         for i in range(int(n/B)):
             ii = list(range(i * B, i * B + B))
@@ -189,14 +189,15 @@ def plot_function(errors_tr,errors_te):
     plot_markers = ['o','+','v','x']
     for i in range(2):
         matplotlib.pyplot.close()
+        matplotlib.pyplot.annotate
         matplotlib.pyplot.figure(figsize=(9, 7))
         matplotlib.pyplot.title("{}".format(["Training", "Test errors"][i]))
         matplotlib.pyplot.xlabel("Number of epochs (model version)")
         matplotlib.pyplot.ylabel("Error")
 
         for j in range(errors_tr.shape[0]):
-            matplotlib.pyplot.plot(np.linspace(.1,epochs,num=iterations), errors[i][j,:],marker=plot_markers[j],markersize=6,linestyle="--")
-        matplotlib.pyplot.legend(["SGD_random_sampling", "SGD_sequential_sampling", "Minibatch_SGD_random_sampling", "Mini_batch_SGD_sequential_sampling"])
+            matplotlib.pyplot.plot(np.linspace(0,epochs-.1,num=iterations), errors[i][j,:],marker=plot_markers[j],markersize=6,linestyle="--")
+        matplotlib.pyplot.legend(["SGD_random_sampling, final error: {:.3f}".format(errors[i][0,-1]), "SGD_sequential_sampling, final error: {:.3f}".format(errors[i][1,-1]), "Minibatch_SGD_random_sampling, final error: {:.3f}".format(errors[i][2,-1]), "Mini_batch_SGD_sequential_sampling, final error: {:.3f}".format(errors[i][3,-1])])
         matplotlib.pyplot.savefig("error_estimate_plot_{}.png".format(["train","test"][i]))
         matplotlib.pyplot.show()
 
@@ -225,31 +226,34 @@ def system_evaluation():
         stochastic_gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
     t_1 = time.time() - t_1
 
-    t_2 = time.time()
-    for _ in tqdm(range(iterations)):
-        sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
-    t_2 = time.time() - t_2
+    print(t_1/iterations)
 
-    t_3 = time.time()
-    for _ in tqdm(range(iterations)):
-        sgd_minibatch(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
-    t_3 = time.time() - t_3
-
-    t_4 = time.time()
-    for _ in tqdm(range(iterations)):
-        sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch,monitor_period_alg34)
-    t_4 = time.time() - t_4
-
-    print("Time for algo1:{}.\n Time for algo2:{}.\n Time for algo3:{}.\n Time for algo4:{}".format(t_1/iterations,t_2/iterations,t_3/iterations,t_4/iterations))
-    return [t_1,t_2,t_3,t_4]
+    # t_2 = time.time()
+    # for _ in tqdm(range(iterations)):
+    #     sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
+    # t_2 = time.time() - t_2
+    #
+    # t_3 = time.time()
+    # for _ in tqdm(range(iterations)):
+    #     sgd_minibatch(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
+    # t_3 = time.time() - t_3
+    #
+    # t_4 = time.time()
+    # for _ in tqdm(range(iterations)):
+    #     sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch,monitor_period_alg34)
+    # t_4 = time.time() - t_4
+    # print("Time for algo2:{}.\n Time for algo3:{}.\n Time for algo4:{}".format(t_2/iterations,t_3/iterations,t_4/iterations))
+    # return [t_2,t_3,t_4]
+    # print("Time for algo1:{}.\n Time for algo2:{}.\n Time for algo3:{}.\n Time for algo4:{}".format(t_1/iterations,t_2/iterations,t_3/iterations,t_4/iterations))
+    # return [t_1,t_2,t_3,t_4]
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     d, n = Xs_tr.shape
     c, _ = Ys_tr.shape
     gamma = 0.0001
-    alpha12 = 0.001
+    alpha12 = 0.05
     alpha34 = 0.05
-    num_epoch = 10
+    num_epoch = 2
     monitor_period_alg12 = 6000
     monitor_period_alg34 = 100
     batch_size = 60
@@ -272,9 +276,9 @@ if __name__ == "__main__":
 
     alg3_w = sgd_minibatch(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
     alg4_w = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
-  
-    errors_tr = np.zeros((4,10*num_epoch))
-    errors_te = np.zeros((4,10*num_epoch))
+
+    errors_tr = np.zeros((4,10*num_epoch+1))
+    errors_te = np.zeros((4,10*num_epoch+1))
 
     alg_weights = [alg1_w,alg2_w,alg3_w,alg4_w]
     for i in tqdm(range(4)):
@@ -301,5 +305,5 @@ if __name__ == "__main__":
 
 
     ####Part 3 System Evaluation
-    system_evaluation()
-    a = 2
+    # system_evaluation()
+    # a = 2
