@@ -202,9 +202,11 @@ def plotSGDAlphaVariations(W0_err, sgd_alpha_variation_tr_errors, metadata):
     alpha12, alpha_e1, alpha_e2 = metadata['alpha12'], metadata['alphaExploration1'], metadata['alphaExploration2']
     alg1_tr_err, sgd_ver2_tr_err, sgd_ver3_tr_err = sgd_alpha_variation_tr_errors
     matplotlib.pyplot.figure(figsize=(8, 6))
-    matplotlib.pyplot.plot([0] + list(range(1, int(n/mp_alg12*n_epoch)+1, int(n/mp_alg12))), [W0_err] + alg1_tr_err)
-    matplotlib.pyplot.plot([0] + list(range(1, int(n/mp_alg12*n_epoch)+1, int(n/mp_alg12))), [W0_err] + sgd_ver2_tr_err)
-    matplotlib.pyplot.plot([0] + list(range(1, int(n/mp_alg12*n_epoch)+1, int(n/mp_alg12))), [W0_err] + sgd_ver3_tr_err)
+    X = [0] + list(range(1, int(n*n_epoch)+1, mp_alg12))
+    print(X)
+    matplotlib.pyplot.plot(X, [W0_err] + alg1_tr_err)
+    matplotlib.pyplot.plot(X, [W0_err] + sgd_ver2_tr_err)
+    matplotlib.pyplot.plot(X, [W0_err] + sgd_ver3_tr_err)
     matplotlib.pyplot.title("Training Errors of SGD with Varying Learning Rates")
     matplotlib.pyplot.legend(["Training Error w/ alpha={}".format(alpha12),
                               "Training error w/ alpha={}".format(alpha_e1),
@@ -235,7 +237,7 @@ def system_evaluation():
     for i in tqdm(range(iterations)):
         alg4_w = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch,monitor_period_alg34)
     t_4 = time.clock() - t_4
-
+ 
     print("1:{},2:{},3:{},4:{}".format(t_1,t_2,t_3,t_4))
 
 if __name__ == "__main__":
@@ -245,7 +247,7 @@ if __name__ == "__main__":
     gamma = 0.0001
     alpha12 = 0.001
     alpha34 = 0.05
-    num_epoch = 1
+    num_epoch = 10
     monitor_period_alg12 = 6000
     monitor_period_alg34 = 100
     batch_size = 60
@@ -294,5 +296,8 @@ if __name__ == "__main__":
     metadata['alphaExploration1'] = alphaExploration1
     metadata['alphaExploration2'] = alphaExploration2
     plotSGDAlphaVariations(W0_err, sgd_alpha_variation_tr_errors, metadata)
+    print("Final error with alpha 0.001:", sgd_ver1_tr_error[-1])
+    print("Final error with alpha 0.005:", sgd_ver2_tr_error[-1])
+    print("Final error with alpha 0.01:" , sgd_ver3_tr_error[-1])
 
 
