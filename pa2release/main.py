@@ -58,7 +58,7 @@ def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
     softmax_input = np.matmul(W,x)
     un_reg_grad = np.matmul((softmax(softmax_input)-y),x.T)
     l2_reg_grad = gamma * W
-    return (un_reg_grad + l2_reg_grad) / len(ii) #Average over the ii samples
+    return (un_reg_grad ) / len(ii) + l2_reg_grad #Average over the ii samples
     # TODO students should implement this
 
 
@@ -416,7 +416,7 @@ if __name__ == "__main__":
                 'monitor_period_mb_sgd' : monitor_period_mb_sgd,
                 'W0' : W0,
                 'batch_size': batch_size}
-    # [sgd, sgd_seq, mb_sgd, mb_sgd_seq] = implementation(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata)
+    [sgd, sgd_seq, mb_sgd, mb_sgd_seq] = implementation(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata)
     
 
     ####Part 2 Exploration
