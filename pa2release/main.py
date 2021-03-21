@@ -211,12 +211,14 @@ def plotMBSGDVariations(mb_sgd_variation_tr_errors, metadata):
     alpha_mb_sgd, alpha_exploration = metadata['alpha_exploration'], metadata['alpha_mb_sgd']
     batch_size_mb_sgd, batch_size_and_monitor_freq_exploration = metadata['batch_size'], metadata['batch_size_and_monitor_freq_exploration']
     matplotlib.pyplot.figure(figsize=(8, 6))
-    X = list(range(0, int(n*n_epoch/batch_size)+1, monitor_period_mb_sgd))
+    iterations = mb_sgd_variation_tr_errors[0].shape[1]
+    X = np.linspace(0,n_epoch-.1,num=iterations)
+    
     print(X)
     for mb_sgd_variation_tr_err in mb_sgd_variation_tr_errors:
         matplotlib.pyplot.plot(X, mb_sgd_variation_tr_err)
     matplotlib.pyplot.title("Training Errors of Mini-Batch SGD with Varying Learning Rates")
-    matplotlib.pyplot.legend(["Training Error w/ alpha={} and batch size={}".format(alpha_mb_sgd, batch_size_mb_sgd),
+    matplotlib.pyplot.legend(["Training Error w/ alpha={} and batch size={}".format(alpha_mb_sgd,         batch_size_mb_sgd),
                               "Training error w/ alpha={} and batch size={}".format(alpha_exploration[2], batch_size_mb_sgd),
                               "Training error w/ alpha={} and batch size={}".format(alpha_exploration[3], batch_size_mb_sgd),
                               "Training error w/ alpha={} and batch size={}".format(alpha_exploration[2], batch_size_and_monitor_freq_exploration[0][0]),
@@ -300,47 +302,75 @@ def exploration(Xs_tr,Ys_tr, Xs_te,Ys_te, metadata):
     # print("Final error with alpha 0.01:" , sgd_ver3_tr_error[-1])
 
     # alpha = 0.05, batch_size = 60 or Part1 Minibatch Sequential SGD 
-    mb_sgd_ver1 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
-    mb_sgd_ver1_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver1[:, 1]]
+    try:
+        mb_sgd_ver1_tr_error = np.loadtxt("mb_sgd_ver1_tr_error.csv", delimiter=",")
+    except:
+        mb_sgd_ver1 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
+        mb_sgd_ver1_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver1[:, 1]])
+        np.savetxt("mb_sgd_ver1_tr_error.csv", mb_sgd_ver1_tr_error, delimiter=",")
     # alpha = 0.1, batch_size = 60 
-    mb_sgd_ver2 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], batch_size, num_epoch, monitor_period_mb_sgd)
-    mb_sgd_ver2_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver2[:, 1]]
+    try:
+        mb_sgd_ver2_tr_error = np.loadtxt("mb_sgd_ver2_tr_error.csv", delimiter=",")
+    except:
+        mb_sgd_ver2 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], batch_size, num_epoch, monitor_period_mb_sgd)
+        mb_sgd_ver2_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver2[:, 1]])
+        np.savetxt("mb_sgd_ver2_tr_error.csv", mb_sgd_ver2_tr_error, delimiter=",")
     # alpha = 0.5, batch_size = 60 
-    mb_sgd_ver3 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], batch_size, num_epoch, monitor_period_mb_sgd)
-    mb_sgd_ver3_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver3[:, 1]]
+    try:
+        mb_sgd_ver3_tr_error = np.loadtxt("mb_sgd_ver3_tr_error.csv", delimiter=",")
+    except:
+        mb_sgd_ver3 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], batch_size, num_epoch, monitor_period_mb_sgd)
+        mb_sgd_ver3_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver3[:, 1]])
+        np.savetxt("mb_sgd_ver3_tr_error.csv", mb_sgd_ver3_tr_error, delimiter=",")
     # alpha = 0.1, batch_size = 600 
-    custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[0]
-    mb_sgd_ver4 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], custom_batch_size, num_epoch, custom_monitor_period)
-    mb_sgd_ver4_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver4[:, 1]]
+    try:
+        mb_sgd_ver4_tr_error = np.loadtxt("mb_sgd_ver4_tr_error.csv", delimiter=",")
+    except:
+        custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[0]
+        mb_sgd_ver4 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], custom_batch_size, num_epoch, custom_monitor_period)
+        mb_sgd_ver4_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver4[:, 1]])
+        np.savetxt("mb_sgd_ver4_tr_error.csv", mb_sgd_ver4_tr_error, delimiter=",")
     # alpha = 0.1, batch_size = 6000
-    custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[1]
-    mb_sgd_ver5 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], custom_batch_size, num_epoch, custom_monitor_period)
-    mb_sgd_ver5_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver5[:, 1]]
+    try:
+        mb_sgd_ver5_tr_error = np.loadtxt("mb_sgd_ver5_tr_error.csv", delimiter=",")
+    except:
+        custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[1]
+        mb_sgd_ver5 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], custom_batch_size, num_epoch, custom_monitor_period)
+        mb_sgd_ver5_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver5[:, 1]])
+        np.savetxt("mb_sgd_ver5_tr_error.csv", mb_sgd_ver5_tr_error, delimiter=",")
     # alpha = 0.5, batch_size = 600 
-    custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[0]
-    mb_sgd_ver6 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], custom_batch_size, num_epoch, custom_monitor_period)
-    mb_sgd_ver6_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver6[:, 1]]
+    try:
+        mb_sgd_ver6_tr_error = np.loadtxt("mb_sgd_ver6_tr_error.csv", delimiter=",")
+    except:
+        custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[0]
+        mb_sgd_ver6 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], custom_batch_size, num_epoch, custom_monitor_period)
+        mb_sgd_ver6_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver6[:, 1]])
+        np.savetxt("mb_sgd_ver6_tr_error.csv", mb_sgd_ver6_tr_error, delimiter=",")
     # alpha = 0.5, batch_size = 6000
-    custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[1]
-    mb_sgd_ver7 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], custom_batch_size, num_epoch, custom_monitor_period)
-    mb_sgd_ver7_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver7[:, 1]]
+    try:
+        mb_sgd_ver7_tr_error = np.loadtxt("mb_sgd_ver7_tr_error.csv", delimiter=",")
+    except:
+        custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[1]
+        mb_sgd_ver7 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], custom_batch_size, num_epoch, custom_monitor_period)
+        mb_sgd_ver7_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver7[:, 1]])
+        np.savetxt("mb_sgd_ver7_tr_error.csv", mb_sgd_ver7_tr_error, delimiter=",")
 
     mb_sgd_variation_tr_errors = [mb_sgd_ver1_tr_error, mb_sgd_ver2_tr_error, mb_sgd_ver3_tr_error, mb_sgd_ver4_tr_error, 
                                      mb_sgd_ver5_tr_error, mb_sgd_ver6_tr_error, mb_sgd_ver7_tr_error]
     plotMBSGDVariations(mb_sgd_variation_tr_errors, metadata)
-    print("Error after 5 epochs with alpha = 0.05, batch_size = 60" , mb_sgd_ver1_tr_error[5])
-    print("Error after 5 epochs with alpha = 0.1, batch_size = 60:" , mb_sgd_ver2_tr_error[5])
-    print("Error after 5 epochs with alpha = 0.5, batch_size = 60:" , mb_sgd_ver3_tr_error[5])
-    print("Final error with alpha 0.05:", mb_sgd_ver1_tr_error[-1])
-    print("Final error with alpha 0.1:", mb_sgd_ver2_tr_error[-1])
-    print("Final error with alpha 0.5:" , mb_sgd_ver3_tr_error[-1])
+    # print("Error after 5 epochs with alpha = 0.05, batch_size = 60" , mb_sgd_ver1_tr_error[5])
+    # print("Error after 5 epochs with alpha = 0.1, batch_size = 60:" , mb_sgd_ver2_tr_error[5])
+    # print("Error after 5 epochs with alpha = 0.5, batch_size = 60:" , mb_sgd_ver3_tr_error[5])
+    # print("Final error with alpha 0.05:", mb_sgd_ver1_tr_error[-1])
+    # print("Final error with alpha 0.1:" , mb_sgd_ver2_tr_error[-1])
+    # print("Final error with alpha 0.5:" , mb_sgd_ver3_tr_error[-1])
 
-def system_evaluation():
+def system_evaluation(metadata):
     print("### System_Evalualtion ###")
     iterations = 5
     t_1 = time.time()
     for _ in tqdm(range(iterations)):
-        stochastic_gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
+        stochastic_gradient_descent(Xs_tr, Ys_tr, gamma, W0, metadata['alpha_sgd'], num_epoch, metadata['monitor_period_sgd'])
     t_1 = time.time() - t_1
 
     print(t_1/iterations)
@@ -394,5 +424,5 @@ if __name__ == "__main__":
 
 
     ####Part 3 System Evaluation
-    # system_evaluation()
+    # system_evaluation(metadata)
     # a = 2
