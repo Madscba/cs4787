@@ -51,7 +51,7 @@ def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monit
         for i in range(int(n/B)):
             ii = list(range(i * B, i * B + B))
             W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
-            if t == 1:
+            if t == 0 and i ==0:
                 print("SGD_mb: ",multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W).max(),multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W).min(),multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W).mean())
             if ((t*(n/B)+i) % monitor_period == monitor_period-1):
                 temp_W = copy.deepcopy(W)
@@ -62,10 +62,22 @@ def sgd_minibatch_sequential_scanv2(Xs, Ys, gamma, W0, alpha, B, num_epochs, mon
     _, n = Xs.shape
     W = copy.deepcopy(W0)
     res = [copy.deepcopy(W0)]
-    for t in num_epochs:
-        for i in range(int(n/B)):
+    for t in tqdm(range(num_epochs)): #2
+        for i in range(int(n/B)): #1000
             ii = list(range(i*B,i*B+B))
-            W = W - alpha * (1/B) * multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
+            diff = np.zeros_like(W)
+            for j in ii:
+                diff += - alpha * (1/B) * multinomial_logreg_grad_i(Xs, Ys, [j], gamma, W)
+            if t == 0 and i == 0:
+                print("SGD_mb_stupid_impl: ", multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W).max(),
+                      multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W).min(),
+                      multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W).mean())
+            W = W + diff
+            if ((t*(n/B)+i) % monitor_period == monitor_period-1):
+                temp_W = copy.deepcopy(W)
+                res.append(copy.deepcopy(temp_W))
+
+
     return res
 
 
@@ -126,13 +138,14 @@ if __name__ == "__main__":
     alg2_w = sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_sgd, num_epoch, monitor_period_sgd)
 
     alg4_w = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
+    alg4_wv2 = sgd_minibatch_sequential_scanv2(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
 
-    algo5_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd*5, num_epoch, monitor_period_mb_sgd)
+    # algo5_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd*5, num_epoch, monitor_period_mb_sgd)
 
     errors_tr = np.zeros((3, 10 * num_epoch + 1))
     errors_te = np.zeros((3, 10 * num_epoch + 1))
 
-    alg_weights = [alg2_w, alg4_w,algo5_w]
+    alg_weights = [alg2_w, alg4_w,alg4_wv2]
     for i in tqdm(range(3)):
         errors_tr[i, :] = [multinomial_logreg_error(Xs_tr, Ys_tr, w) for w in alg_weights[i]]
         errors_te[i, :] = [multinomial_logreg_error(Xs_te, Ys_te, w) for w in alg_weights[i]]

@@ -56,7 +56,7 @@ def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
     y = Ys[:, ii] #choose the corresponding targets
 
     softmax_input = np.matmul(W,x)
-    un_reg_grad = np.matmul((softmax(softmax_input)-y),x.T)
+    un_reg_grad = np.matmul((softmax(softmax_input,axis=0)-y),x.T)
     l2_reg_grad = gamma * W
     return (un_reg_grad ) / len(ii) + l2_reg_grad #Average over the ii samples
 
@@ -405,7 +405,7 @@ if __name__ == "__main__":
     d, n = Xs_tr.shape
     c, _ = Ys_tr.shape
     gamma = 0.0001
-    alpha_sgd = 0.05
+    alpha_sgd = 0.001
     alpha_mb_sgd = 0.05
     num_epoch = 3
     monitor_period_sgd = 6000
