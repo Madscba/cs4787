@@ -59,7 +59,6 @@ def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
     un_reg_grad = np.matmul((softmax(softmax_input)-y),x.T)
     l2_reg_grad = gamma * W
     return (un_reg_grad ) / len(ii) + l2_reg_grad #Average over the ii samples
-    # TODO students should implement this
 
 
 # compute the error of the classifier (SAME AS PROGRAMMING ASSIGNMENT 1)
@@ -155,7 +154,11 @@ def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
         if (t % monitor_period == 0):
             res.append([t, copy.deepcopy(W)])
         datapoint_idx = random.sample(list(range(n)),B)
-        W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
+        tempW = np.zeros(W.shape)
+        for i in datapoint_idx:
+            tempW += multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
+        W = W - alpha*tempW/B
+        # W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
     res.append([t, copy.deepcopy(W)])
     return np.array(res, dtype='object')
 
@@ -181,7 +184,11 @@ def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monit
             ii = list(range(i * B, i * B + B))
             if ((t*(n/B)+i) % monitor_period == 0):
                 res.append([(t*(n/B)+i), copy.deepcopy(W)])
-            W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
+            tempW = np.zeros(W.shape)
+            for i in ii:
+                tempW += multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
+            W = W - alpha*tempW/B
+            # W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
     res.append([(t*(n/B)+i), copy.deepcopy(W)])
     return np.array(res, dtype='object')
     # TODO students should implement this
@@ -400,7 +407,7 @@ if __name__ == "__main__":
     gamma = 0.0001
     alpha_sgd = 0.05
     alpha_mb_sgd = 0.05
-    num_epoch = 10
+    num_epoch = 3
     monitor_period_sgd = 6000
     monitor_period_mb_sgd = 100
     batch_size = 60
