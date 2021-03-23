@@ -100,11 +100,11 @@ def stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_pe
     res = []
     for t in tqdm(range(num_epochs_corrected)):
         if (t % monitor_period == 0):
-            res.append([t, copy.deepcopy(W)])
+            res.append(copy.deepcopy(W))
         datapoint_idx = random.sample(list(range(n)),1)
         W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
-    res.append([t, copy.deepcopy(W)])
-    return np.array(res, dtype='object')
+    res.append(copy.deepcopy(W))
+    return res
 
 
 # ALGORITHM 2: run stochastic gradient descent with sequential sampling order
@@ -126,10 +126,10 @@ def sgd_sequential_scan(Xs, Ys, gamma, W0, alpha, num_epochs, monitor_period):
     for t in tqdm(range(num_epochs)):
         for i in range(n):
             if ((t*n+i) % monitor_period == 0):
-                res.append([t*n+i, copy.deepcopy(W)])
+                res.append(copy.deepcopy(W))
             W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
-    res.append([t*n+i, copy.deepcopy(W)])       
-    return np.array(res, dtype='object')
+    res.append(copy.deepcopy(W))       
+    return res
 
 
 # ALGORITHM 3: run stochastic gradient descent with minibatching
@@ -152,15 +152,16 @@ def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
     res = []
     for t in tqdm(range(num_epochs_corrected)):
         if (t % monitor_period == 0):
-            res.append([t, copy.deepcopy(W)])
+            res.append(copy.deepcopy(W))
         datapoint_idx = random.sample(list(range(n)),B)
         tempW = np.zeros(W.shape)
         for i in datapoint_idx:
             tempW += multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
         W = W - alpha*tempW/B
         # W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
-    res.append([t, copy.deepcopy(W)])
-    return np.array(res, dtype='object')
+    res.append(copy.deepcopy(W))
+    return res
+
 
 
 # ALGORITHM 4: run stochastic gradient descent with minibatching and sequential sampling order
@@ -183,25 +184,25 @@ def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monit
         for i in range(int(n/B)):
             ii = list(range(i * B, i * B + B))
             if ((t*(n/B)+i) % monitor_period == 0):
-                res.append([(t*(n/B)+i), copy.deepcopy(W)])
+                res.append(copy.deepcopy(W))
             tempW = np.zeros(W.shape)
             for i in ii:
                 tempW += multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
             W = W - alpha*tempW/B
             # W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
-    res.append([(t*(n/B)+i), copy.deepcopy(W)])
-    return np.array(res, dtype='object')
+    res.append(copy.deepcopy(W))
+    return res
     # TODO students should implement this
     
-def plotSGDAlphaVariations(sgd_alpha_variation_tr_errors, metadata):
-    n, mp_alg12, n_epoch = metadata['n'], metadata['mp_alg12'], metadata['num_epoch']
+def plotSGDAlphaVariationsTr(sgd_alpha_variation_tr_errors, metadata):
+    n, mp_alg12, n_epoch = metadata['n'], metadata['monitor_period_sgd'], metadata['num_epoch']
     alpha_sgd= metadata['alpha_sgd'],
     alpha_e1, alpha_e2 = metadata['alpha_exploration'][0], metadata['alpha_exploration'][1]
     sgd_ver1_tr_err, sgd_ver2_tr_err, sgd_ver3_tr_err = sgd_alpha_variation_tr_errors
     matplotlib.pyplot.figure(figsize=(8, 6))
-    X = [0] + list(range(1, int(n*n_epoch)+1, mp_alg12))
-    print(X)
-    matplotlib.pyplot.plot(sgd_ver1_tr_err[0, :], sgd_ver1_tr_err[1, :])
+    iterations = sgd_alpha_variation_tr_errors[0].shape[0]
+    X = np.linspace(0,n_epoch-.1,num=iterations)
+    matplotlib.pyplot.plot(X, sgd_ver1_tr_err)
     matplotlib.pyplot.plot(X, sgd_ver2_tr_err)
     matplotlib.pyplot.plot(X, sgd_ver3_tr_err)
     matplotlib.pyplot.title("Training Errors of SGD with Varying Learning Rates")
@@ -213,18 +214,37 @@ def plotSGDAlphaVariations(sgd_alpha_variation_tr_errors, metadata):
     matplotlib.pyplot.savefig("pt2_tr_error_w_diff_alphas.png")
     matplotlib.pyplot.show()
 
-def plotMBSGDVariations(mb_sgd_variation_tr_errors, metadata):
+def plotSGDAlphaVariationsTe(sgd_alpha_variation_te_errors, metadata):
+    n, mp_alg12, n_epoch = metadata['n'], metadata['monitor_period_sgd'], metadata['num_epoch']
+    alpha_sgd= metadata['alpha_sgd'],
+    alpha_e1, alpha_e2 = metadata['alpha_exploration'][0], metadata['alpha_exploration'][1]
+    sgd_ver1_te_err, sgd_ver2_te_err, sgd_ver3_te_err = sgd_alpha_variation_te_errors
+    matplotlib.pyplot.figure(figsize=(8, 6))
+    iterations = sgd_alpha_variation_te_errors[0].shape[0]
+    X = np.linspace(0,n_epoch-.1,num=iterations)
+    matplotlib.pyplot.plot(X, sgd_ver1_te_err)
+    matplotlib.pyplot.plot(X, sgd_ver2_te_err)
+    matplotlib.pyplot.plot(X, sgd_ver3_te_err)
+    matplotlib.pyplot.title("Testing Errors of SGD with Varying Learning Rates")
+    matplotlib.pyplot.legend(["Testing Error w/ alpha={}".format(alpha_sgd),
+                              "Testing error w/ alpha={}".format(alpha_e1),
+                              "Testing error w/ alpha={}".format(alpha_e2)])
+    matplotlib.pyplot.xlabel("Iteration (model version)")
+    matplotlib.pyplot.ylabel("Error")
+    matplotlib.pyplot.savefig("pt2_te_error_w_diff_alphas.png")
+    matplotlib.pyplot.show()
+
+def plotMBSGDVariationsTr(mb_sgd_variation_tr_errors, metadata):
     n, monitor_period_mb_sgd, n_epoch, batch_size = metadata['n'], metadata['monitor_period_mb_sgd'], metadata['num_epoch'], metadata['batch_size']
-    alpha_mb_sgd, alpha_exploration = metadata['alpha_exploration'], metadata['alpha_mb_sgd']
+    alpha_mb_sgd, alpha_exploration =  metadata['alpha_mb_sgd'], metadata['alpha_exploration']
     batch_size_mb_sgd, batch_size_and_monitor_freq_exploration = metadata['batch_size'], metadata['batch_size_and_monitor_freq_exploration']
     matplotlib.pyplot.figure(figsize=(8, 6))
-    iterations = mb_sgd_variation_tr_errors[0].shape[1]
+    iterations = mb_sgd_variation_tr_errors[0].shape[0]
     X = np.linspace(0,n_epoch-.1,num=iterations)
     
-    print(X)
     for mb_sgd_variation_tr_err in mb_sgd_variation_tr_errors:
         matplotlib.pyplot.plot(X, mb_sgd_variation_tr_err)
-    matplotlib.pyplot.title("Training Errors of Mini-Batch SGD with Varying Learning Rates")
+    matplotlib.pyplot.title("Training Errors of Mini-Batch SGD with Varying Learning Rates and Batch Sizes")
     matplotlib.pyplot.legend(["Training Error w/ alpha={} and batch size={}".format(alpha_mb_sgd,         batch_size_mb_sgd),
                               "Training error w/ alpha={} and batch size={}".format(alpha_exploration[2], batch_size_mb_sgd),
                               "Training error w/ alpha={} and batch size={}".format(alpha_exploration[3], batch_size_mb_sgd),
@@ -232,12 +252,76 @@ def plotMBSGDVariations(mb_sgd_variation_tr_errors, metadata):
                               "Training error w/ alpha={} and batch size={}".format(alpha_exploration[2], batch_size_and_monitor_freq_exploration[1][0]),
                               "Training error w/ alpha={} and batch size={}".format(alpha_exploration[3], batch_size_and_monitor_freq_exploration[0][0]),
                               "Training error w/ alpha={} and batch size={}".format(alpha_exploration[3], batch_size_and_monitor_freq_exploration[1][0]),
+                              "Training error w/ alpha={} and batch size={}".format(alpha_exploration[4], batch_size_and_monitor_freq_exploration[1][0]),
+                              "Training error w/ alpha={} and batch size={}".format(alpha_exploration[4], batch_size_and_monitor_freq_exploration[0][0]),
+                              "Training error w/ alpha={} and batch size={}".format(alpha_exploration[5], batch_size_and_monitor_freq_exploration[0][0]),
                               ])
     matplotlib.pyplot.xlabel("Iteration (model version)")
     matplotlib.pyplot.ylabel("Error")
-    matplotlib.pyplot.savefig("pt2_mb_sgd_tr_error_w_diff_alphas.png")
+    matplotlib.pyplot.savefig("pt2_mb_sgd_tr_error_w_diff_alphas_and_batch_sizes.png")
     matplotlib.pyplot.show()
 
+def plotMBSGDVariationsTe(mb_sgd_variation_te_errors, metadata):
+    n, monitor_period_mb_sgd, n_epoch, batch_size = metadata['n'], metadata['monitor_period_mb_sgd'], metadata['num_epoch'], metadata['batch_size']
+    alpha_mb_sgd, alpha_exploration =  metadata['alpha_mb_sgd'], metadata['alpha_exploration']
+    batch_size_mb_sgd, batch_size_and_monitor_freq_exploration = metadata['batch_size'], metadata['batch_size_and_monitor_freq_exploration']
+    matplotlib.pyplot.figure(figsize=(8, 6))
+    iterations = mb_sgd_variation_te_errors[0].shape[0]
+    X = np.linspace(0,n_epoch-.1,num=iterations)
+    
+    print(X)
+    for mb_sgd_variation_te_err in mb_sgd_variation_te_errors:
+        matplotlib.pyplot.plot(X, mb_sgd_variation_te_err)
+    matplotlib.pyplot.title("Testing Errors of Mini-Batch SGD with Varying Learning Rates ahd Batch Sizes")
+    matplotlib.pyplot.legend(["Testing Error w/ alpha={} and batch size={}".format(alpha_mb_sgd,         batch_size_mb_sgd),
+                              "Testing error w/ alpha={} and batch size={}".format(alpha_exploration[3], batch_size_mb_sgd),
+                              "Testing error w/ alpha={} and batch size={}".format(alpha_exploration[4], batch_size_and_monitor_freq_exploration[0][0]),
+                              ])
+    matplotlib.pyplot.xlabel("Iteration (model version)")
+    matplotlib.pyplot.ylabel("Error")
+    matplotlib.pyplot.savefig("pt2_mb_sgd_te_error_w_diff_alphas_and_batch_sizes.png")
+    matplotlib.pyplot.show()
+
+def plotVariationsTr(variation_tr_errors, metadata):
+    n, monitor_period_mb_sgd, n_epoch, batch_size = metadata['n'], metadata['monitor_period_mb_sgd'], metadata['num_epoch'], metadata['batch_size']
+    alpha_mb_sgd, alpha_exploration = metadata['alpha_mb_sgd'], metadata['alpha_exploration']
+    batch_size_mb_sgd, batch_size_and_monitor_freq_exploration = metadata['batch_size'], metadata['batch_size_and_monitor_freq_exploration']
+    matplotlib.pyplot.figure(figsize=(8, 6))
+    iterations = variation_tr_errors[0].shape[0]
+    X = np.linspace(0,n_epoch-.1,num=iterations)
+    
+    for mb_sgd_variation_tr_err in variation_tr_errors:
+        matplotlib.pyplot.plot(X, mb_sgd_variation_tr_err)
+    matplotlib.pyplot.title("Training Errors of SGD and Mini-Batch SGD with Varying Learning Rates ahd Batch Sizes")
+    matplotlib.pyplot.legend(["Training error of SGD w/ alpha={}".format(alpha_exploration[0]),
+                              "Training error of SGD w/ alpha={}".format(alpha_exploration[1]),
+                              "Training error w/ MB_SGD alpha={} and batch size={}".format(alpha_exploration[3], batch_size),
+                              ])
+    matplotlib.pyplot.xlabel("Iteration (model version)")
+    matplotlib.pyplot.ylabel("Error")
+    matplotlib.pyplot.savefig("pt2_5_tr.png")
+    matplotlib.pyplot.show()
+
+
+def plotVariationsTe(variation_te_errors, metadata):
+    n, monitor_period_mb_sgd, n_epoch, batch_size = metadata['n'], metadata['monitor_period_mb_sgd'], metadata['num_epoch'], metadata['batch_size']
+    alpha_mb_sgd, alpha_exploration = metadata['alpha_mb_sgd'], metadata['alpha_exploration']
+    batch_size_mb_sgd, batch_size_and_monitor_freq_exploration = metadata['batch_size'], metadata['batch_size_and_monitor_freq_exploration']
+    matplotlib.pyplot.figure(figsize=(8, 6))
+    iterations = variation_te_errors[0].shape[0]
+    X = np.linspace(0,n_epoch-.1,num=iterations)
+    
+    for mb_sgd_variation_te_err in variation_te_errors:
+        matplotlib.pyplot.plot(X, mb_sgd_variation_te_err)
+    matplotlib.pyplot.title("Testing Errors of SGD and Mini-Batch SGD with Varying Learning Rates and Batch Sizes")
+    matplotlib.pyplot.legend(["Testing error of SGD w/ alpha={}".format(alpha_exploration[0]),
+                              "Testing error of SGD w/ alpha={}".format(alpha_exploration[1]),
+                              "Testing error w/ MB_SGD alpha={} and batch size={}".format(alpha_exploration[3], batch_size),
+                              ])
+    matplotlib.pyplot.xlabel("Iteration (model version)")
+    matplotlib.pyplot.ylabel("Error")
+    matplotlib.pyplot.savefig("pt2_5_te.png")
+    matplotlib.pyplot.show()
 # ___________________________________Part 1_____________________________________________________
 def implementation(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata):
     # Hyperparameters
@@ -288,25 +372,78 @@ def exploration(Xs_tr,Ys_tr, Xs_te,Ys_te, metadata):
     gamma, W0, num_epoch = metadata['gamma'], metadata['W0'], metadata['num_epoch']
     monitor_period_sgd, monitor_period_mb_sgd = metadata['monitor_period_sgd'], metadata['monitor_period_mb_sgd']
     alpha_sgd, alpha_mb_sgd = metadata['alpha_sgd'], metadata['alpha_mb_sgd']
-    alpha_exploration = [0.005, 0.01, 0.1, 0.5]
+    alpha_exploration = [0.005, 0.01, 0.1, 0.5, 2, 5]
     batch_size_and_monitor_freq_exploration = [(600,10), (6000, 1)]
     metadata['batch_size_and_monitor_freq_exploration'] = batch_size_and_monitor_freq_exploration
     metadata['alpha_exploration'] = alpha_exploration
-
     # sgd_ver1 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alpha_sgd,num_epoch,monitor_period_sgd)
-    # sgd_ver1_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver1]
+    # try:
+    #     sgd_ver1 = np.genfromtxt("sgd_ver1.csv", delimiter=",")
+    # except:
+    #     sgd_ver1 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alpha_sgd,num_epoch,monitor_period_sgd)
+    #     np.savetxt("sgd_ver1.csv", sgd_ver1, delimiter=",")
+    # try:
+    #     sgd_ver1_tr_error = np.loadtxt("sgd_ver1_tr_error.csv", delimiter=",")
+    # except:
+    #     sgd_ver1_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver1])
+    #     np.savetxt("sgd_ver1_tr_error.csv", sgd_ver1_tr_error, delimiter=",")
+
     # sgd_ver2 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alpha_exploration[0],num_epoch,monitor_period_sgd)
-    # sgd_ver2_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver2]
+    # # try:
+    # #     sgd_ver2 = np.genfromtxt("sgd_ver2.csv", delimiter=",")
+    # # except:
+    # #     sgd_ver2 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alpha_exploration[0],num_epoch,monitor_period_sgd)
+    # #     np.savetxt("sgd_ver2.csv", sgd_ver2, delimiter=",")
+    # try:
+    #     sgd_ver2_tr_error = np.loadtxt("sgd_ver2_tr_error.csv", delimiter=",")
+    # except:
+    #     sgd_ver2_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver2])
+    #     np.savetxt("sgd_ver2_tr_error.csv", sgd_ver2_tr_error, delimiter=",")
+    
     # sgd_ver3 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alpha_exploration[1],num_epoch,monitor_period_sgd)
-    # sgd_ver3_tr_error = [multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver3]
+    # # try:
+    # #     sgd_ver3 = np.loadtxt("sgd_ver3.csv", delimiter=",")
+    # # except:
+    # #     sgd_ver3 = stochastic_gradient_descent(Xs_tr,Ys_tr,gamma,W0,alpha_exploration[1],num_epoch,monitor_period_sgd)
+    # #     np.savetxt("sgd_ver3.csv", sgd_ver3, delimiter=",")
+    # try:
+    #     sgd_ver3_tr_error = np.loadtxt("sgd_ver3_tr_error.csv", delimiter=",")
+    # except:
+    #     sgd_ver3_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in sgd_ver3])
+    #     np.savetxt("sgd_ver3_tr_error.csv", sgd_ver3_tr_error, delimiter=",")
     # sgd_alpha_variation_tr_errors = [sgd_ver1_tr_error, sgd_ver2_tr_error, sgd_ver3_tr_error]
-    # plotSGDAlphaVariations(sgd_alpha_variation_tr_errors, metadata)
-    # print("Error after 5 epochs with alpha 0.05:", sgd_ver1_tr_error[5])
-    # print("Error after 5 epochs with alpha 0.1:",  sgd_ver2_tr_error[5])
-    # print("Error after 5 epochs with alpha 0.5:",  sgd_ver3_tr_error[5])
-    # print("Final error with alpha 0.001:", sgd_ver1_tr_error[-1])
-    # print("Final error with alpha 0.005:", sgd_ver2_tr_error[-1])
-    # print("Final error with alpha 0.01:" , sgd_ver3_tr_error[-1])
+    # # plotSGDAlphaVariationsTr(sgd_alpha_variation_tr_errors, metadata)
+    # print("Training Error after 5 epochs with alpha 0.05:", sgd_ver1_tr_error[50])
+    # print("Training Error after 5 epochs with alpha 0.1:",  sgd_ver2_tr_error[50])
+    # print("Training Error after 5 epochs with alpha 0.5:",  sgd_ver3_tr_error[50])
+    # print("Final training error with alpha 0.001:", sgd_ver1_tr_error[-1])
+    # print("Final training error with alpha 0.005:", sgd_ver2_tr_error[-1])
+    # print("Final training error with alpha 0.01:" , sgd_ver3_tr_error[-1])
+
+    # try:
+    #     sgd_ver1_te_error = np.loadtxt("sgd_ver1_te_error.csv", delimiter=",")
+    # except:
+    #     sgd_ver1_te_error = np.array([multinomial_logreg_error(Xs_te,Ys_te, w) for w in sgd_ver1[:, 1]])
+    #     np.savetxt("sgd_ver1_te_error.csv", sgd_ver1_te_error, delimiter=",")
+    try:
+        sgd_ver2_te_error = np.loadtxt("sgd_ver2_te_error.csv", delimiter=",")
+    except:
+        sgd_ver2_te_error = np.array([multinomial_logreg_error(Xs_te,Ys_te, w) for w in sgd_ver2])
+        np.savetxt("sgd_ver2_te_error.csv", sgd_ver2_te_error, delimiter=",")
+    try:
+        sgd_ver3_te_error = np.loadtxt("sgd_ver3_te_error.csv", delimiter=",")
+    except:
+        sgd_ver3_te_error = np.array([multinomial_logreg_error(Xs_te,Ys_te, w) for w in sgd_ver3])
+        np.savetxt("sgd_ver3_te_error.csv", sgd_ver3_te_error, delimiter=",")
+    # sgd_alpha_variation_te_errors = [sgd_ver1_te_error, sgd_ver2_te_error, sgd_ver3_te_error]
+    # plotSGDAlphaVariationsTe(sgd_alpha_variation_te_errors, metadata)
+    # print("Testing Error after 5 epochs with alpha 0.05:", sgd_ver1_te_error[50])
+    # print("Testing Error after 5 epochs with alpha 0.1:",  sgd_ver2_te_error[50])
+    # print("Testing Error after 5 epochs with alpha 0.5:",  sgd_ver3_te_error[50])
+    # print("Final testing error with alpha 0.001:", sgd_ver1_te_error[-1])
+    # print("Final testing error with alpha 0.005:", sgd_ver2_te_error[-1])
+    # print("Final testing error with alpha 0.01:" , sgd_ver3_te_error[-1])
+    
 
     # alpha = 0.05, batch_size = 60 or Part1 Minibatch Sequential SGD 
     try:
@@ -315,13 +452,6 @@ def exploration(Xs_tr,Ys_tr, Xs_te,Ys_te, metadata):
         mb_sgd_ver1 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
         mb_sgd_ver1_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver1[:, 1]])
         np.savetxt("mb_sgd_ver1_tr_error.csv", mb_sgd_ver1_tr_error, delimiter=",")
-    # alpha = 0.1, batch_size = 60 
-    try:
-        mb_sgd_ver2_tr_error = np.loadtxt("mb_sgd_ver2_tr_error.csv", delimiter=",")
-    except:
-        mb_sgd_ver2 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], batch_size, num_epoch, monitor_period_mb_sgd)
-        mb_sgd_ver2_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver2[:, 1]])
-        np.savetxt("mb_sgd_ver2_tr_error.csv", mb_sgd_ver2_tr_error, delimiter=",")
     # alpha = 0.5, batch_size = 60 
     try:
         mb_sgd_ver3_tr_error = np.loadtxt("mb_sgd_ver3_tr_error.csv", delimiter=",")
@@ -329,52 +459,61 @@ def exploration(Xs_tr,Ys_tr, Xs_te,Ys_te, metadata):
         mb_sgd_ver3 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], batch_size, num_epoch, monitor_period_mb_sgd)
         mb_sgd_ver3_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver3[:, 1]])
         np.savetxt("mb_sgd_ver3_tr_error.csv", mb_sgd_ver3_tr_error, delimiter=",")
-    # alpha = 0.1, batch_size = 600 
+    # custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[0]
     try:
-        mb_sgd_ver4_tr_error = np.loadtxt("mb_sgd_ver4_tr_error.csv", delimiter=",")
+        mb_sgd_ver9_tr_error = np.loadtxt("mb_sgd_ver9_tr_error.csv", delimiter=",")
     except:
-        custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[0]
-        mb_sgd_ver4 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], custom_batch_size, num_epoch, custom_monitor_period)
-        mb_sgd_ver4_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver4[:, 1]])
-        np.savetxt("mb_sgd_ver4_tr_error.csv", mb_sgd_ver4_tr_error, delimiter=",")
-    # alpha = 0.1, batch_size = 6000
-    try:
-        mb_sgd_ver5_tr_error = np.loadtxt("mb_sgd_ver5_tr_error.csv", delimiter=",")
-    except:
-        custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[1]
-        mb_sgd_ver5 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[2], custom_batch_size, num_epoch, custom_monitor_period)
-        mb_sgd_ver5_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver5[:, 1]])
-        np.savetxt("mb_sgd_ver5_tr_error.csv", mb_sgd_ver5_tr_error, delimiter=",")
-    # alpha = 0.5, batch_size = 600 
-    try:
-        mb_sgd_ver6_tr_error = np.loadtxt("mb_sgd_ver6_tr_error.csv", delimiter=",")
-    except:
-        custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[0]
-        mb_sgd_ver6 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], custom_batch_size, num_epoch, custom_monitor_period)
-        mb_sgd_ver6_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver6[:, 1]])
-        np.savetxt("mb_sgd_ver6_tr_error.csv", mb_sgd_ver6_tr_error, delimiter=",")
-    # alpha = 0.5, batch_size = 6000
-    try:
-        mb_sgd_ver7_tr_error = np.loadtxt("mb_sgd_ver7_tr_error.csv", delimiter=",")
-    except:
-        custom_batch_size, custom_monitor_period = batch_size_and_monitor_freq_exploration[1]
-        mb_sgd_ver7 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[3], custom_batch_size, num_epoch, custom_monitor_period)
-        mb_sgd_ver7_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver7[:, 1]])
-        np.savetxt("mb_sgd_ver7_tr_error.csv", mb_sgd_ver7_tr_error, delimiter=",")
+        mb_sgd_ver9 = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_exploration[4], custom_batch_size, num_epoch, custom_monitor_period)
+        mb_sgd_ver9_tr_error = np.array([multinomial_logreg_error(Xs_tr,Ys_tr, w) for w in mb_sgd_ver9[:, 1]])
+        np.savetxt("mb_sgd_ver9_tr_error.csv", mb_sgd_ver9_tr_error, delimiter=",")
 
-    mb_sgd_variation_tr_errors = [mb_sgd_ver1_tr_error, mb_sgd_ver2_tr_error, mb_sgd_ver3_tr_error, mb_sgd_ver4_tr_error, 
-                                     mb_sgd_ver5_tr_error, mb_sgd_ver6_tr_error, mb_sgd_ver7_tr_error]
-    plotMBSGDVariations(mb_sgd_variation_tr_errors, metadata)
-    # print("Error after 5 epochs with alpha = 0.05, batch_size = 60" , mb_sgd_ver1_tr_error[5])
-    # print("Error after 5 epochs with alpha = 0.1, batch_size = 60:" , mb_sgd_ver2_tr_error[5])
-    # print("Error after 5 epochs with alpha = 0.5, batch_size = 60:" , mb_sgd_ver3_tr_error[5])
-    # print("Final error with alpha 0.05:", mb_sgd_ver1_tr_error[-1])
-    # print("Final error with alpha 0.1:" , mb_sgd_ver2_tr_error[-1])
-    # print("Final error with alpha 0.5:" , mb_sgd_ver3_tr_error[-1])
+    # mb_sgd_variation_tr_errors = [mb_sgd_ver1_tr_error, mb_sgd_ver3_tr_error, mb_sgd_ver9_tr_error]
+    # plotMBSGDVariationsTr(mb_sgd_variation_tr_errors, metadata)
+    # print("Training Error after 5 epochs with alpha = 0.05, batch_size = 60:", mb_sgd_ver1_tr_error[50])
+    # print("Training Error after 5 epochs with alpha = 0.5, batch_size = 60:" , mb_sgd_ver3_tr_error[50])
+    # print("Training Error after 5 epochs with alpha = 2, batch_size = 600:" , mb_sgd_ver9_tr_error[50])
+
+    # print("Final training error with alpha = 0.05, batch_size = 60:", mb_sgd_ver1_tr_error[-1])
+    # print("Final training error with alpha = 0.5, batch_size = 60:" , mb_sgd_ver3_tr_error[-1])
+    # print("Final training error with alpha = 2, batch_size = 600:" , mb_sgd_ver9_tr_error[-1])
+    # __________________________ MB SGD on Test Data ________________________________
+    # Baseline
+    try:
+        mb_sgd_ver1_te_error = np.loadtxt("mb_sgd_ver1_te_error.csv", delimiter=",")
+    except:
+        mb_sgd_ver1_te_error = np.array([multinomial_logreg_error(Xs_te,Ys_te, w) for w in mb_sgd_ver1[:, 1]])
+        np.savetxt("mb_sgd_ver1_te_error.csv", mb_sgd_ver1_te_error, delimiter=",")
+    # alpha = 0.5, batch_size = 60 
+    try:
+        mb_sgd_ver3_te_error = np.loadtxt("mb_sgd_ver3_te_error.csv", delimiter=",")
+    except:
+        mb_sgd_ver3_te_error = np.array([multinomial_logreg_error(Xs_te,Ys_te, w) for w in mb_sgd_ver3[:, 1]])
+        np.savetxt("mb_sgd_ver3_te_error.csv", mb_sgd_ver3_te_error, delimiter=",")
+    # alpha = 2, batch_size = 600
+    try:
+        mb_sgd_ver9_te_error = np.loadtxt("mb_sgd_ver9_te_error.csv", delimiter=",")
+    except:
+        mb_sgd_ver9_te_error = np.array([multinomial_logreg_error(Xs_te,Ys_te, w) for w in mb_sgd_ver9[:, 1]])
+        np.savetxt("mb_sgd_ver9_te_error.csv", mb_sgd_ver9_te_error, delimiter=",")
+    mb_sgd_variation_te_errors = [mb_sgd_ver1_te_error, mb_sgd_ver3_te_error, mb_sgd_ver9_te_error]
+    # plotMBSGDVariationsTe(mb_sgd_variation_te_errors, metadata)
+    # print("Testing Error after 5 epochs with alpha = 0.05, batch_size = 60:", mb_sgd_ver1_te_error[50])
+    # print("Testing Error after 5 epochs with alpha = 2, batch_size = 600:" , mb_sgd_ver3_te_error[50])
+    # print("Testing Error after 5 epochs with alpha = 5, batch_size = 600:" , mb_sgd_ver9_te_error[50])
+
+    # print("Final testing error with alpha = 0.05, batch_size = 60:", mb_sgd_ver1_te_error[-1])
+    # print("Final testing error with alpha = 0.1, batch_size = 60:" , mb_sgd_ver3_te_error[-1])
+    # print("Final testing error with alpha = 0.5, batch_size = 60:" , mb_sgd_ver9_te_error[-1])
+    
+    # ______________________ PART 2.5 __________________________
+    # variation_tr_errors = [sgd_ver2_tr_error, sgd_ver3_tr_error, mb_sgd_ver3_tr_error]
+    # plotVariationsTr(variation_tr_errors, metadata)
+    variation_te_errors = [sgd_ver2_te_error, sgd_ver3_te_error, mb_sgd_ver3_te_error]
+    plotVariationsTe(variation_te_errors, metadata)
 
 def system_evaluation(metadata):
     print("### System_Evalualtion ###")
-    iterations = 5
+    iterations = 10
     t_1 = time.time()
     for _ in tqdm(range(iterations)):
         stochastic_gradient_descent(Xs_tr, Ys_tr, gamma, W0, metadata['alpha_sgd'], num_epoch, metadata['monitor_period_sgd'])
@@ -407,7 +546,7 @@ if __name__ == "__main__":
     gamma = 0.0001
     alpha_sgd = 0.001
     alpha_mb_sgd = 0.05
-    num_epoch = 3
+    num_epoch = 10
     monitor_period_sgd = 6000
     monitor_period_mb_sgd = 100
     batch_size = 60
@@ -423,7 +562,7 @@ if __name__ == "__main__":
                 'monitor_period_mb_sgd' : monitor_period_mb_sgd,
                 'W0' : W0,
                 'batch_size': batch_size}
-    [sgd, sgd_seq, mb_sgd, mb_sgd_seq] = implementation(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata)
+    # [sgd, sgd_seq, mb_sgd, mb_sgd_seq] = implementation(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata)
     
 
     ####Part 2 Exploration
