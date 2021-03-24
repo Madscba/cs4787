@@ -154,11 +154,11 @@ def sgd_minibatch(Xs, Ys, gamma, W0, alpha, B, num_epochs, monitor_period):
         if (t % monitor_period == 0):
             res.append(copy.deepcopy(W))
         datapoint_idx = random.sample(list(range(n)),B)
-        tempW = np.zeros(W.shape)
-        for i in datapoint_idx:
-            tempW += multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
-        W = W - alpha*tempW/B
-        # W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
+        # tempW = np.zeros(W.shape)
+        # for i in datapoint_idx:
+        #     tempW += multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
+        # W = W - alpha*tempW/B
+        W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, datapoint_idx, gamma, W)
     res.append(copy.deepcopy(W))
     return res
 
@@ -185,11 +185,11 @@ def sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha, B, num_epochs, monit
             ii = list(range(i * B, i * B + B))
             if ((t*(n/B)+i) % monitor_period == 0):
                 res.append(copy.deepcopy(W))
-            tempW = np.zeros(W.shape)
-            for i in ii:
-                tempW += multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
-            W = W - alpha*tempW/B
-            # W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
+            # tempW = np.zeros(W.shape)
+            # for i in ii:
+            #     tempW += multinomial_logreg_grad_i(Xs, Ys, [i], gamma, W)
+            # W = W - alpha*tempW/B
+            W = W - alpha*multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
     res.append(copy.deepcopy(W))
     return res
     # TODO students should implement this
@@ -513,32 +513,35 @@ def exploration(Xs_tr,Ys_tr, Xs_te,Ys_te, metadata):
 
 def system_evaluation(metadata):
     print("### System_Evalualtion ###")
-    iterations = 10
+    iterations = 5
+    alpha12 = metadata['alpha_sgd']
+    alpha34 = metadata['alpha_mb_sgd']
+    monitor_period_alg12 = metadata['monitor_period_sgd']
+    monitor_period_alg34 = metadata['monitor_period_mb_sgd']
+
     t_1 = time.time()
     for _ in tqdm(range(iterations)):
         stochastic_gradient_descent(Xs_tr, Ys_tr, gamma, W0, metadata['alpha_sgd'], num_epoch, metadata['monitor_period_sgd'])
     t_1 = time.time() - t_1
 
-    print(t_1/iterations)
+    t_2 = time.time()
+    for _ in tqdm(range(iterations)):
+        sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
+    t_2 = time.time() - t_2
 
-    # t_2 = time.time()
-    # for _ in tqdm(range(iterations)):
-    #     sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha12, num_epoch, monitor_period_alg12)
-    # t_2 = time.time() - t_2
-    #
-    # t_3 = time.time()
-    # for _ in tqdm(range(iterations)):
-    #     sgd_minibatch(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
-    # t_3 = time.time() - t_3
-    #
-    # t_4 = time.time()
-    # for _ in tqdm(range(iterations)):
-    #     sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch,monitor_period_alg34)
-    # t_4 = time.time() - t_4
+    t_3 = time.time()
+    for _ in tqdm(range(iterations)):
+        sgd_minibatch(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch, monitor_period_alg34)
+    t_3 = time.time() - t_3
+
+    t_4 = time.time()
+    for _ in tqdm(range(iterations)):
+        sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha34, batch_size, num_epoch,monitor_period_alg34)
+    t_4 = time.time() - t_4
     # print("Time for algo2:{}.\n Time for algo3:{}.\n Time for algo4:{}".format(t_2/iterations,t_3/iterations,t_4/iterations))
     # return [t_2,t_3,t_4]
-    # print("Time for algo1:{}.\n Time for algo2:{}.\n Time for algo3:{}.\n Time for algo4:{}".format(t_1/iterations,t_2/iterations,t_3/iterations,t_4/iterations))
-    # return [t_1,t_2,t_3,t_4]
+    print("Time for algo1:{}.\n Time for algo2:{}.\n Time for algo3:{}.\n Time for algo4:{}".format(t_1/iterations,t_2/iterations,t_3/iterations,t_4/iterations))
+    return [t_1,t_2,t_3,t_4]
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     d, n = Xs_tr.shape
@@ -546,7 +549,7 @@ if __name__ == "__main__":
     gamma = 0.0001
     alpha_sgd = 0.001
     alpha_mb_sgd = 0.05
-    num_epoch = 1
+    num_epoch = 10
     monitor_period_sgd = 6000
     monitor_period_mb_sgd = 100
     batch_size = 60
@@ -570,5 +573,5 @@ if __name__ == "__main__":
 
 
     ####Part 3 System Evaluation
-    # system_evaluation(metadata)
+    system_evaluation(metadata)
     # a = 2
