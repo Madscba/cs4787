@@ -337,13 +337,13 @@ def implementation(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata):
     mb_sgd_seq = sgd_minibatch_sequential_scan(Xs_tr,Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
 
     variations = [sgd, sgd_seq, mb_sgd, mb_sgd_seq]
-    n, m = sgd.shape
+    n = len(sgd)
     
     errors_tr = np.zeros((4, n))
     errors_te = np.zeros((4, n))
     for i in tqdm(range(len(variations))):
-        errors_tr[i, :] = [multinomial_logreg_error(Xs_tr,Ys_tr, weights) for weights in variations[i][:,1]]
-        errors_te[i, :] = [multinomial_logreg_error(Xs_te,Ys_te, weights) for weights in variations[i][:,1]]
+        errors_tr[i, :] = [multinomial_logreg_error(Xs_tr,Ys_tr, weights) for weights in variations[i]]
+        errors_te[i, :] = [multinomial_logreg_error(Xs_te,Ys_te, weights) for weights in variations[i]]
 
     errors = [errors_tr,errors_te]
     iterations = errors_tr.shape[1]
@@ -546,7 +546,7 @@ if __name__ == "__main__":
     gamma = 0.0001
     alpha_sgd = 0.001
     alpha_mb_sgd = 0.05
-    num_epoch = 10
+    num_epoch = 1
     monitor_period_sgd = 6000
     monitor_period_mb_sgd = 100
     batch_size = 60
@@ -562,11 +562,11 @@ if __name__ == "__main__":
                 'monitor_period_mb_sgd' : monitor_period_mb_sgd,
                 'W0' : W0,
                 'batch_size': batch_size}
-    # [sgd, sgd_seq, mb_sgd, mb_sgd_seq] = implementation(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata)
+    [sgd, sgd_seq, mb_sgd, mb_sgd_seq] = implementation(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata)
     
 
     ####Part 2 Exploration
-    exploration(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata)
+    # exploration(Xs_tr, Ys_tr, Xs_te, Ys_te, metadata)
 
 
     ####Part 3 System Evaluation
