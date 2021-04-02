@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os
-import numpy
+import numpy as np
 from numpy import random
 import scipy
 import matplotlib
@@ -25,21 +25,21 @@ def load_MNIST_dataset():
         mnist_data = mnist.MNIST(mnist_data_directory, return_type="numpy", gz=True)
         Xs_tr, Lbls_tr = mnist_data.load_training();
         Xs_tr = Xs_tr.transpose() / 255.0
-        Ys_tr = numpy.zeros((10, 60000))
+        Ys_tr = np.zeros((10, 60000))
         for i in range(60000):
             Ys_tr[Lbls_tr[i], i] = 1.0  # one-hot encode each label
         # shuffle the training data
-        numpy.random.seed(8675309)
-        perm = numpy.random.permutation(60000)
-        Xs_tr = numpy.ascontiguousarray(Xs_tr[:,perm])
-        Ys_tr = numpy.ascontiguousarray(Ys_tr[:,perm])
+        np.random.seed(8675309)
+        perm = np.random.permutation(60000)
+        Xs_tr = np.ascontiguousarray(Xs_tr[:,perm])
+        Ys_tr = np.ascontiguousarray(Ys_tr[:,perm])
         Xs_te, Lbls_te = mnist_data.load_testing();
         Xs_te = Xs_te.transpose() / 255.0
-        Ys_te = numpy.zeros((10, 10000))
+        Ys_te = np.zeros((10, 10000))
         for i in range(10000):
             Ys_te[Lbls_te[i], i] = 1.0  # one-hot encode each label
-        Xs_te = numpy.ascontiguousarray(Xs_te)
-        Ys_te = numpy.ascontiguousarray(Ys_te)
+        Xs_te = np.ascontiguousarray(Xs_te)
+        Ys_te = np.ascontiguousarray(Ys_te)
         dataset = (Xs_tr, Ys_tr, Xs_te, Ys_te)
         pickle.dump(dataset, open(PICKLE_FILE, 'wb'))
     return dataset
@@ -55,6 +55,13 @@ def load_MNIST_dataset():
 #
 # returns   the average gradient of the regularized loss of the examples in vector ii with respect to the model parameters
 def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
+    x = Xs[:, ii] #choose the datapoints
+    y = Ys[:, ii] #choose the corresponding targets
+
+    softmax_input = np.matmul(W,x)
+    un_reg_grad = np.matmul((softmax(softmax_input,axis=0)-y),x.T)
+    l2_reg_grad = gamma * W
+    return (un_reg_grad ) / len(ii) + l2_reg_grad #Average over the ii samples
     # TODO students should use their implementation from programming assignment 2
 
 
@@ -66,6 +73,15 @@ def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
 #
 # returns   the model error as a percentage of incorrect labels
 def multinomial_logreg_error(Xs, Ys, W):
+    incorrect_count = 0
+    Xs = Xs.T
+    Ys = Ys.T
+    for x, y in zip (Xs, Ys):
+        softmax_input = np.matmul(W,x)
+        pred = np.argmax(softmax(softmax_input))
+
+        incorrect_count += 1 if y[pred] == 0 else 0
+    return incorrect_count /  np.shape(Xs)[0]
     # TODO students should use their implementation from programming assignment 1
 
 
