@@ -100,7 +100,9 @@ def multinomial_logreg_loss(Xs, Ys, gamma, W):
     softmax_input = np.matmul(W, Xs)
     Ys_hat = softmax(softmax_input, axis=0)
     total_loss = - np.sum(Ys * np.log(Ys_hat)) / n
-    return total_loss
+    l2_reg =  (gamma/2) * np.linalg.norm(W)**2
+    return total_loss + l2_reg
+
 
 
 def multinomial_logreg_total_grad(Xs, Ys, gamma, W):
@@ -222,8 +224,7 @@ def sgd_mss_with_momentum(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs, monitor
             ii = list(range(i * B, i * B + B))
             if ((t*(n/B)+i) % monitor_period == 0):
                 res.append(copy.deepcopy(W))
-            V = beta * V - alpha * \
-                multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
+            V = beta * V - alpha * multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
             W = W + V
     res.append(copy.deepcopy(W))
     return res
@@ -266,7 +267,7 @@ def eval_tr_te_loss(variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te):
             Xs_te, Ys_te, weights) for weights in variations[i]]
         print("Finished evaluating testing error for variation ", i)
         loss_tr[i, :] = [multinomial_logreg_loss(
-            Xs_tr, Ys_tr, gamma, weights) for weights in variations[i]]
+            Xs_tr, Ys_tr, gamma, weights) for weights in variations[i]] #todo entire dataset
         print("Finished evaluating training loss for variation ", i)
     return errors_tr, errors_te, loss_tr
 
@@ -284,11 +285,10 @@ def plot_tr_te_loss(plot_data, num_epochs, legend, part):
         data = plot_data[i]
         for j in range(data.shape[0]):
             matplotlib.pyplot.plot(X, plot_data[i][j, :])
-        matplotlib.pyplot.legend([legend[0] + ", final: {:.3f}".format(plot_data[i][0, -1]),
-                                  legend[1] +
-                                  ", final: {:.3f}".format(
-                                      plot_data[i][1, -1]),
-                                  legend[2] + ", final: {:.3f}".format(plot_data[i][2, -1])])
+        matplotlib.pyplot.legend([legend[k] + ", final: {:.3f}".format(plot_data[i][k, -1]) for k in range(len(legend))])
+        # matplotlib.pyplot.legend([legend[0] + ", final: {:.3f}".format(plot_data[i][0, -1]),
+        #                           legend[1] +", final: {:.3f}".format(plot_data[i][1, -1]),
+        #                           legend[2] + ", final: {:.3f}".format(plot_data[i][2, -1])])
         matplotlib.pyplot.savefig(
             "Part"+str(part)+"_{}.png".format(["TrainingError", "TestError", "TrainingLoss"][i]))
         # matplotlib.pyplot.show()
@@ -303,7 +303,7 @@ def part_1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     alpha = 1.0
     beta1 = 0.9
     beta2 = 0.99
-    num_epochs = 100
+    num_epochs = 5
     monitor_period = 1
     gd_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0,
                             alpha, num_epochs, monitor_period)
@@ -338,8 +338,30 @@ def part_1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     avg_time2 = sum_time2/num_runs
     print("Average times: ")
     print(avg_time1, avg_time2)
-    # 10. Testing hyperparameters
+    #10. Testing hyperparameters
+    alpha_values = [0.005*10**i for i in range(4)]
+    beta_values = [0.97**(2*i) for i in range(1,4)]
 
+    gd_weights = []
+    gd_nest_weights = []
+    for i in range(len(alpha_values)):
+        for j in range(len(beta_values)):
+            gd_weights.append(copy.deepcopy(gradient_descent(Xs_tr, Ys_tr, gamma, W0,
+                                    alpha_values[i], num_epochs, monitor_period)))
+
+            gd_nest_weights.append(copy.deepcopy(gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha_values[i],
+                                  beta_values[j], num_epochs, monitor_period)))
+
+    hyper_variations = gd_weights+gd_nest_weights
+    hyper_errors_tr, hyper_errors_te, hyper_loss_tr = eval_tr_te_loss(
+        hyper_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # 8. Plot training, test, and loss
+    hyper_data = [hyper_errors_tr, hyper_errors_te, hyper_loss_tr]
+    legend_gd_hyp = ["Gradient descent α = {}".format(a) for a in alpha_values]
+    legend_gd_nest_hyp = ["Nesterov's momentum with β = {}, α = {}".format(b,a) for a,b in zip(alpha_values,beta_values)]
+
+    # plot_tr_te_loss(plot_data, num_epochs, legend, 1)
+    plot_tr_te_loss(hyper_data, num_epochs, legend_gd_hyp+legend_gd_nest_hyp, 1)
 
 def part_2(Xs_tr, Ys_tr, Xs_te, Ys_te):
     # 3. Stochastic Gradient Descent, Momentum 0.9, Momentum 0.99
@@ -369,6 +391,7 @@ def part_2(Xs_tr, Ys_tr, Xs_te, Ys_te):
               "Momentum with SGD, β = 0.9",
               "Momentum with SGD, β = 0.99"]
     plot_tr_te_loss(plot_data, num_epochs, legend, 2)
+
     # 6. Run each algorithm 5 times (4 more) and average the time
     num_runs = 5
     sum_time1 = 0
@@ -388,9 +411,34 @@ def part_2(Xs_tr, Ys_tr, Xs_te, Ys_te):
     print(avg_time1, avg_time2)
     # 7. Testing hyperparameters
 
+    alpha_values = [0.005 * 10 ** i for i in range(4)][:2]
+    beta_values = [0.97 ** (2 * i) for i in range(1, 4)][:2]
+
+    sgd_weights = []
+    sgd_nest_weights = []
+    for i in range(len(alpha_values)):
+        for j in range(len(beta_values)):
+            sgd_weights.append(copy.deepcopy(gradient_descent(Xs_tr, Ys_tr, gamma, W0,
+                                                             alpha_values[i], num_epochs, monitor_period)))
+
+            sgd_nest_weights.append(copy.deepcopy(gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha_values[i],
+                                                             beta_values[j], num_epochs, monitor_period)))
+
+    hyper_variations = sgd_weights + sgd_nest_weights
+    hyper_errors_tr, hyper_errors_te, hyper_loss_tr = eval_tr_te_loss(
+        hyper_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    hyper_data = [hyper_errors_tr, hyper_errors_te, hyper_loss_tr]
+
+    legend_gd_hyp = ["Gradient descent α = {}".format(a) for a in alpha_values]
+    legend_gd_nest_hyp = ["Nesterov's momentum with β = {}, α = {}".format(a, b) for a, b in
+                          zip(alpha_values, beta_values)]
+
+    # plot_tr_te_loss(plot_data, num_epochs, legend, 1)
+    plot_tr_te_loss(hyper_data, num_epochs, legend_gd_hyp + legend_gd_nest_hyp, 1)
+    matplotlib.pyplot.savefig("hyper_comparison_part1_10.png")
 
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     # TODO add code to produce figures
     part_1(Xs_tr, Ys_tr, Xs_te, Ys_te)
-    part_2(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    #part_2(Xs_tr, Ys_tr, Xs_te, Ys_te)
