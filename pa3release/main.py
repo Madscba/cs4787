@@ -303,7 +303,7 @@ def part_1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     alpha = 1.0
     beta1 = 0.9
     beta2 = 0.99
-    num_epochs = 5
+    num_epochs = 100
     monitor_period = 1
     gd_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0,
                             alpha, num_epochs, monitor_period)
@@ -411,8 +411,8 @@ def part_2(Xs_tr, Ys_tr, Xs_te, Ys_te):
     print(avg_time1, avg_time2)
     # 7. Testing hyperparameters
 
-    alpha_values = [0.005 * 10 ** i for i in range(4)][:2]
-    beta_values = [0.97 ** (2 * i) for i in range(1, 4)][:2]
+    alpha_values = [(1/i) for i in range(2,16,4)]
+    beta_values = [0.97 ** (2 * i) for i in range(1, 4)]
 
     sgd_weights = []
     sgd_nest_weights = []
@@ -433,12 +433,84 @@ def part_2(Xs_tr, Ys_tr, Xs_te, Ys_te):
     legend_gd_nest_hyp = ["Nesterov's momentum with β = {}, α = {}".format(a, b) for a, b in
                           zip(alpha_values, beta_values)]
 
-    # plot_tr_te_loss(plot_data, num_epochs, legend, 1)
     plot_tr_te_loss(hyper_data, num_epochs, legend_gd_hyp + legend_gd_nest_hyp, 1)
-    matplotlib.pyplot.savefig("hyper_comparison_part1_10.png")
 
+def part_3(Xs_tr, Ys_tr, Xs_te, Ys_te):
+    #2
+    d, n = Xs_tr.shape
+    c, _ = Ys_tr.shape
+    W0 = np.random.normal(0, 1, size=(c, d))
+    gamma = 0.0001
+    alpha_sgd = 0.2
+    alpha_adam = 0.01
+    eps = 10**(-5)
+    B = 600
+    rho1 = 0.9
+    rho2 = 0.999
+    num_epochs = 100
+    monitor_period = 100
+
+    sgd_mss_w = sgd_minibatch_sequential_scan(
+        Xs_tr, Ys_tr, gamma, W0, alpha_sgd, B, num_epochs, monitor_period)
+    adam_w = adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1, rho2, B, eps, num_epochs, monitor_period)
+
+    # 3. Evaluating training, test, loss for each model
+    p3_variations = [sgd_mss_w, adam_w]
+    p3_errors_tr, p3_errors_te, p3_loss_tr = eval_tr_te_loss(
+        p3_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # 4. Plot training, test, and loss
+    plot_data = [p3_errors_tr, p3_errors_te, p3_loss_tr]
+    legend = ["Stochastic gradient descent α = 0.2",
+              "Adam, α = 0.01, ρ1 = 0.9, ρ2 = 0.999"]
+    plot_tr_te_loss(plot_data, num_epochs, legend, 2)
+
+    # 5. Run each algorithm 5 times (4 more) and average the time
+    num_runs = 5
+    sum_time1 = 0
+    sum_time2 = 0
+    for run in range(num_runs):
+        t1 = time.time()
+        sgd_mss_w = sgd_minibatch_sequential_scan(
+            Xs_tr, Ys_tr, gamma, W0, alpha_sgd, B, num_epochs, monitor_period)
+        sum_time1 += time.time() - t1
+        t2 = time.time()
+        adam_w = adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1, rho2, B, eps, num_epochs, monitor_period)
+        sum_time2 += time.time() - t2
+    avg_time1 = sum_time1/num_runs
+    avg_time2 = sum_time2/num_runs
+    print("Average times: ")
+    print(avg_time1, avg_time2)
+    # 6. Testing hyperparameters
+
+    alpha_values_sgd = [(1/i) for i in range(2,16,7)]
+    alpha_values_adam = [(5 / 10**i) for i in range(2, 5)]
+    rho1_values = [0.99,0.8]
+    rho2_values = [0.9999,0.99,0.9]
+
+    sgd_weights = []
+    adam_weights = []
+    for i in range(len(alpha_values_sgd)):
+        sgd_weights.append(copy.deepcopy(gradient_descent(Xs_tr, Ys_tr, gamma, W0,
+                                                          alpha_values_sgd[i], num_epochs, monitor_period)))
+
+    for i in range(len(alpha_values_adam)):
+        for j in range(len(rho1_values)):
+            for k in range(len(rho2_values)):
+                adam_weights.append(copy.deepcopy(adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1_values[j], rho2_values[k], B, eps, num_epochs, monitor_period)))
+
+    hyper_variations = sgd_weights + adam_weights
+    hyper_errors_tr, hyper_errors_te, hyper_loss_tr = eval_tr_te_loss(
+        hyper_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    hyper_data = [hyper_errors_tr, hyper_errors_te, hyper_loss_tr]
+
+    legend_gd_hyp = ["Gradient descent α = {}".format(a) for a in alpha_values_adam]
+    legend_gd_nest_hyp = ["Adam, α = {}, ρ1 = {}, ρ2 = {}".format(a, b[0],b[1]) for a, b in
+                          zip(alpha_values_adam, (rho1_values,rho2_values))]
+
+    plot_tr_te_loss(hyper_data, num_epochs, legend_gd_hyp + legend_gd_nest_hyp, 1)
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     # TODO add code to produce figures
-    part_1(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # part_1(Xs_tr, Ys_tr, Xs_te, Ys_te)
     #part_2(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    part_3(Xs_tr, Ys_tr, Xs_te, Ys_te)
