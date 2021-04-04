@@ -248,7 +248,26 @@ def sgd_mss_with_momentum(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs, monitor
 
 def adam(Xs, Ys, gamma, W0, alpha, rho1, rho2, B, eps, num_epochs, monitor_period):
     # TODO students should implement this
-    return 0
+    d, n = Xs.shape
+    c, _ = Xs.shape
+    W = copy.deepcopy(W0)
+    r = np.zeros_like(W0)
+    s = np.zeros_like(W0)
+    t = 0
+    res = []
+    for k in range(num_epochs):
+        for i in range(int(n/B)):
+            t += 1
+            if ((k*(n/B)+i) % monitor_period == 0):
+                res.append(copy.deepcopy(W))
+            ii = list(range(i * B, i * B + B))
+            g =  multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
+            s = rho1 * s + (1 - rho1) * g
+            r = rho2 * r + (1 - rho2) * np.square(g)
+            s_hat = s/(1 - rho1**t)
+            r_hat = r/(1 - rho2**t)
+            W = W - np.multiply(alpha/np.sqrt(r_hat+eps), s_hat)
+    return res
 
 # Evaluates the training error, test error, and training loss
 
