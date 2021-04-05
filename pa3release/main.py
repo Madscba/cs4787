@@ -324,22 +324,22 @@ def part_1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     beta2 = 0.99
     num_epochs = 100
     monitor_period = 1
-    gd_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0,
-                            alpha, num_epochs, monitor_period)
-    gdn_9_w = gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha,
-                          beta1, num_epochs, monitor_period)
-    gdn_99_w = gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha,
-                           beta2, num_epochs, monitor_period)
-    # 7. Evaluating training, test, loss for each model
-    p1_variations = [gd_w, gdn_9_w, gdn_99_w]
-    p1_errors_tr, p1_errors_te, p1_loss_tr = eval_tr_te_loss(
-        p1_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
-    # 8. Plot training, test, and loss
-    plot_data = [p1_errors_tr, p1_errors_te, p1_loss_tr]
-    legend = ["Gradient descent",
-              "Nesterov's momentum with β = 0.9",
-              "Nesterov's momentum with β = 0.99"]
-    plot_tr_te_loss(plot_data, num_epochs, legend, 1)
+    # gd_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0,
+    #                         alpha, num_epochs, monitor_period)
+    # gdn_9_w = gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha,
+    #                       beta1, num_epochs, monitor_period)
+    # gdn_99_w = gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha,
+    #                        beta2, num_epochs, monitor_period)
+    # # 7. Evaluating training, test, loss for each model
+    # p1_variations = [gd_w, gdn_9_w, gdn_99_w]
+    # p1_errors_tr, p1_errors_te, p1_loss_tr = eval_tr_te_loss(
+    #     p1_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # # 8. Plot training, test, and loss
+    # plot_data = [p1_errors_tr, p1_errors_te, p1_loss_tr]
+    # legend = ["Gradient descent",
+    #           "Nesterov's momentum with β = 0.9",
+    #           "Nesterov's momentum with β = 0.99"]
+    # plot_tr_te_loss(plot_data, num_epochs, legend, 1)
     # # 9. Run each algorithm 5 times (4 more) and average the time
     # num_runs = 5
     # sum_time1 = 0
@@ -359,15 +359,15 @@ def part_1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     # print(avg_time1, avg_time2)
     #10. Testing hyperparameters
     alpha_values = [0.005*10**i for i in range(3)]
-    beta_values = [0.97**(2*i) for i in range(1,4)]
+    beta_values = [0.97**(2*i) for i in range(1,3)]
 
     gd_weights = []
     gd_nest_weights = []
     legends = []
     for i in range(len(alpha_values)):
+        gd_weights.append(copy.deepcopy(gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha_values[i], num_epochs, monitor_period)))
+        legends.append("Gradient descent α = {:.3f}".format(alpha_values[i]))
         for j in range(len(beta_values)):
-            gd_weights.append(copy.deepcopy(gradient_descent(Xs_tr, Ys_tr, gamma, W0,alpha_values[i], num_epochs, monitor_period)))
-            legends.append("Gradient descent α = {:.3f}".format(alpha_values[i]))
             gd_nest_weights.append(copy.deepcopy(gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha_values[i],beta_values[j], num_epochs, monitor_period)))
             legends.append("Nesterov's momentum with β = {:.3f}, α = {:.3f}".format(beta_values[j],alpha_values[i]))
     hyper_variations = gd_weights+gd_nest_weights
@@ -393,65 +393,63 @@ def part_2(Xs_tr, Ys_tr, Xs_te, Ys_te):
     beta2 = 0.99
     num_epochs = 100
     monitor_period = 100
-    sgd_mss_w = sgd_minibatch_sequential_scan(
-        Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
-    sgd_mss_9_w = sgd_mss_with_momentum(
-        Xs_tr, Ys_tr, gamma, W0, alpha, beta1, B, num_epochs, monitor_period)
-    sgd_mss_99_w = sgd_mss_with_momentum(
-        Xs_tr, Ys_tr, gamma, W0, alpha, beta2, B, num_epochs, monitor_period)
-    # 4. Evaluating training, test, loss for each model
-    p2_variations = [sgd_mss_w, sgd_mss_9_w, sgd_mss_99_w]
-    p2_errors_tr, p2_errors_te, p2_loss_tr = eval_tr_te_loss(
-        p2_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
-    # 5. Plot training, test, and loss
-    plot_data = [p2_errors_tr, p2_errors_te, p2_loss_tr]
-    legend = ["Stochastic gradient descent",
-              "Momentum with SGD, β = 0.9",
-              "Momentum with SGD, β = 0.99"]
-    plot_tr_te_loss(plot_data, num_epochs, legend, 2)
+    # sgd_mss_w = sgd_minibatch_sequential_scan(
+    #     Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
+    # sgd_mss_9_w = sgd_mss_with_momentum(
+    #     Xs_tr, Ys_tr, gamma, W0, alpha, beta1, B, num_epochs, monitor_period)
+    # sgd_mss_99_w = sgd_mss_with_momentum(
+    #     Xs_tr, Ys_tr, gamma, W0, alpha, beta2, B, num_epochs, monitor_period)
+    # # 4. Evaluating training, test, loss for each model
+    # p2_variations = [sgd_mss_w, sgd_mss_9_w, sgd_mss_99_w]
+    # p2_errors_tr, p2_errors_te, p2_loss_tr = eval_tr_te_loss(
+    #     p2_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # # 5. Plot training, test, and loss
+    # plot_data = [p2_errors_tr, p2_errors_te, p2_loss_tr]
+    # legend = ["Stochastic gradient descent",
+    #           "Momentum with SGD, β = 0.9",
+    #           "Momentum with SGD, β = 0.99"]
+    # plot_tr_te_loss(plot_data, num_epochs, legend, 2)
 
     # 6. Run each algorithm 5 times (4 more) and average the time
-    num_runs = 5
-    sum_time1 = 0
-    sum_time2 = 0
-    for run in range(num_runs):
-        t1 = time.time()
-        sgd_mss_w = sgd_minibatch_sequential_scan(
-            Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
-        sum_time1 += time.time() - t1
-        t2 = time.time()
-        sgd_mss_9_w = sgd_mss_with_momentum(
-            Xs_tr, Ys_tr, gamma, W0, alpha, beta1, B, num_epochs, monitor_period)
-        sum_time2 += time.time() - t2
-    avg_time1 = sum_time1/num_runs
-    avg_time2 = sum_time2/num_runs
-    print("Average times: ")
-    print(avg_time1, avg_time2)
+    # num_runs = 5
+    # sum_time1 = 0
+    # sum_time2 = 0
+    # for run in range(num_runs):
+    #     t1 = time.time()
+    #     sgd_mss_w = sgd_minibatch_sequential_scan(
+    #         Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
+    #     sum_time1 += time.time() - t1
+    #     t2 = time.time()
+    #     sgd_mss_9_w = sgd_mss_with_momentum(
+    #         Xs_tr, Ys_tr, gamma, W0, alpha, beta1, B, num_epochs, monitor_period)
+    #     sum_time2 += time.time() - t2
+    # avg_time1 = sum_time1/num_runs
+    # avg_time2 = sum_time2/num_runs
+    # print("Average times: ")
+    # print(avg_time1, avg_time2)
     # 7. Testing hyperparameters
 
-    alpha_values = [(1/i) for i in range(2,16,4)]
-    beta_values = [0.97 ** (2 * i) for i in range(1, 4)]
+    alpha_values = [(1/i) for i in range(2,13,10)]
+    beta_values = [0.97 ** (2 * i) for i in range(1, 4,2)]
 
     sgd_weights = []
     sgd_nest_weights = []
+    legends = []
     for i in range(len(alpha_values)):
-        for j in range(len(beta_values)):
-            sgd_weights.append(copy.deepcopy(gradient_descent(Xs_tr, Ys_tr, gamma, W0,
-                                                             alpha_values[i], num_epochs, monitor_period)))
+        sgd_weights.append(copy.deepcopy(sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_values[i], B, num_epochs, monitor_period)))
+        legends.append("SGD α = {:.3f}".format(alpha_values[i]))
 
-            sgd_nest_weights.append(copy.deepcopy(gd_nesterov(Xs_tr, Ys_tr, gamma, W0, alpha_values[i],
-                                                             beta_values[j], num_epochs, monitor_period)))
+        for j in range(len(beta_values)):
+            sgd_nest_weights.append(copy.deepcopy(sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha_values[i], beta_values[j], B, num_epochs, monitor_period)))
+            legends.append("SGD Nesterov with β = {:.3f}, α = {:.3f}".format(beta_values[j],alpha_values[i]))
+
 
     hyper_variations = sgd_weights + sgd_nest_weights
     hyper_errors_tr, hyper_errors_te, hyper_loss_tr = eval_tr_te_loss(
         hyper_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
     hyper_data = [hyper_errors_tr, hyper_errors_te, hyper_loss_tr]
 
-    legend_gd_hyp = ["Gradient descent α = {}".format(a) for a in alpha_values]
-    legend_gd_nest_hyp = ["Nesterov's momentum with β = {}, α = {}".format(a, b) for a, b in
-                          zip(alpha_values, beta_values)]
-
-    plot_tr_te_loss(hyper_data, num_epochs, legend_gd_hyp + legend_gd_nest_hyp, 1)
+    plot_tr_te_loss(hyper_data, num_epochs, legends, 2)
 
 def part_3(Xs_tr, Ys_tr, Xs_te, Ys_te):
     #2
@@ -529,6 +527,6 @@ def part_3(Xs_tr, Ys_tr, Xs_te, Ys_te):
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     # TODO add code to produce figures
-    part_1(Xs_tr, Ys_tr, Xs_te, Ys_te)
-    # part_2(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # part_1(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    part_2(Xs_tr, Ys_tr, Xs_te, Ys_te)
     # part_3(Xs_tr, Ys_tr, Xs_te, Ys_te)
