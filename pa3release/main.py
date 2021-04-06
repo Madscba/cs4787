@@ -104,7 +104,6 @@ def multinomial_logreg_loss(Xs, Ys, gamma, W):
     return total_loss + l2_reg
 
 
-
 def multinomial_logreg_total_grad(Xs, Ys, gamma, W):
     # TODO students should implement this
     # a starter solution using an average of the example gradients
@@ -255,7 +254,7 @@ def adam(Xs, Ys, gamma, W0, alpha, rho1, rho2, B, eps, num_epochs, monitor_perio
     s = np.zeros_like(W0)
     t = 0
     res = []
-    for k in range(num_epochs):
+    for k in tqdm(range(num_epochs)):
         for i in range(int(n/B)):
             t += 1
             if ((k*(n/B)+i) % monitor_period == 0):
@@ -267,6 +266,7 @@ def adam(Xs, Ys, gamma, W0, alpha, rho1, rho2, B, eps, num_epochs, monitor_perio
             s_hat = s/(1 - rho1**t)
             r_hat = r/(1 - rho2**t)
             W = W - np.multiply(alpha/np.sqrt(r_hat+eps), s_hat)
+    res.append(copy.deepcopy(W))
     return res
 
 # Evaluates the training error, test error, and training loss
@@ -310,7 +310,7 @@ def plot_tr_te_loss(plot_data, num_epochs, legend, part):
         #                           legend[2] + ", final: {:.3f}".format(plot_data[i][2, -1])])
         matplotlib.pyplot.savefig(
             "Part"+str(part)+"_{}{}.png".format(["TrainingError", "TestError", "TrainingLoss"][i],len(legend)))
-        # matplotlib.pyplot.show()
+        matplotlib.pyplot.show()
 
 
 def part_1(Xs_tr, Ys_tr, Xs_te, Ys_te):
@@ -468,67 +468,80 @@ def part_3(Xs_tr, Ys_tr, Xs_te, Ys_te):
     num_epochs = 100
     monitor_period = 100
 
-    sgd_mss_w = sgd_minibatch_sequential_scan(
-        Xs_tr, Ys_tr, gamma, W0, alpha_sgd, B, num_epochs, monitor_period)
-    adam_w = adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1, rho2, B, eps, num_epochs, monitor_period)
+    # sgd_mss_w = sgd_minibatch_sequential_scan(
+    #     Xs_tr, Ys_tr, gamma, W0, alpha_sgd, B, num_epochs, monitor_period)
+    # adam_w = adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1, rho2, B, eps, num_epochs, monitor_period)
 
-    # 3. Evaluating training, test, loss for each model
-    p3_variations = [sgd_mss_w, adam_w]
-    p3_errors_tr, p3_errors_te, p3_loss_tr = eval_tr_te_loss(
-        p3_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
-    # 4. Plot training, test, and loss
-    plot_data = [p3_errors_tr, p3_errors_te, p3_loss_tr]
-    legend = ["Stochastic gradient descent α = 0.2",
-              "Adam, α = 0.01, ρ1 = 0.9, ρ2 = 0.999"]
-    plot_tr_te_loss(plot_data, num_epochs, legend, 2)
+    # # 3. Evaluating training, test, loss for each model
+    # p3_variations = [sgd_mss_w, adam_w]
+    # p3_errors_tr, p3_errors_te, p3_loss_tr = eval_tr_te_loss(
+    #     p3_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # # 4. Plot training, test, and loss
+    # plot_data = [p3_errors_tr, p3_errors_te, p3_loss_tr]
+    # legend = ["Stochastic gradient descent α = 0.2",
+    #           "Adam, α = 0.01, ρ1 = 0.9, ρ2 = 0.999"]
+    # plot_tr_te_loss(plot_data, num_epochs, legend, 3)
 
-    # 5. Run each algorithm 5 times (4 more) and average the time
-    num_runs = 5
-    sum_time1 = 0
-    sum_time2 = 0
-    for run in range(num_runs):
-        t1 = time.time()
-        sgd_mss_w = sgd_minibatch_sequential_scan(
-            Xs_tr, Ys_tr, gamma, W0, alpha_sgd, B, num_epochs, monitor_period)
-        sum_time1 += time.time() - t1
-        t2 = time.time()
-        adam_w = adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1, rho2, B, eps, num_epochs, monitor_period)
-        sum_time2 += time.time() - t2
-    avg_time1 = sum_time1/num_runs
-    avg_time2 = sum_time2/num_runs
-    print("Average times: ")
-    print(avg_time1, avg_time2)
-    # 6. Testing hyperparameters
+    # # 5. Run each algorithm 5 times (4 more) and average the time
+    # num_runs = 5
+    # sum_time1 = 0
+    # sum_time2 = 0
+    # for run in range(num_runs):
+    #     t1 = time.time()
+    #     sgd_mss_w = sgd_minibatch_sequential_scan(
+    #         Xs_tr, Ys_tr, gamma, W0, alpha_sgd, B, num_epochs, monitor_period)
+    #     sum_time1 += time.time() - t1
+    #     t2 = time.time()
+    #     adam_w = adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1, rho2, B, eps, num_epochs, monitor_period)
+    #     sum_time2 += time.time() - t2
+    # avg_time1 = sum_time1/num_runs
+    # avg_time2 = sum_time2/num_runs
+    # print("Average times: ")
+    # print(avg_time1, avg_time2)
+    # # 6. Testing hyperparameters
+    hyper_errors_tr = np.loadtxt("Training Error_data.csv", delimiter=",")
+    hyper_errors_te = np.loadtxt("Test Error_data.csv", delimiter=",")
+    hyper_loss_tr = np.loadtxt("Training Loss_data.csv", delimiter=",")
 
-    alpha_values_sgd = [(1/i) for i in range(2,16,7)]
-    alpha_values_adam = [(5 / 10**i) for i in range(2, 5)]
-    rho1_values = [0.99,0.8]
-    rho2_values = [0.9999,0.99,0.9]
+    alpha_values_sgd = [(1/i) for i in range(2,16,7)] # 0.5, .11, .0625
+    # alpha_values_adam = [(5 / 10**i) for i in range(2, 5)]
+    # rho1_values = [0.99,0.8]
+    # rho2_values = [0.9999,0.99,0.9]
+    hyperparameters_permutations = [(2, 0.99, 0.9999), (2, 0.99, 0.99), (2, 0.99, 0.9), (2, 0.8, 0.9999),  (2, 0.8, 0.99),  (2, 0.8, 0.9), \
+                                    (3, 0.99, 0.9999), (3, 0.99, 0.99), (3, 0.99, 0.9), (3, 0.8, 0.9999),  (3, 0.8, 0.99),  (3, 0.8, 0.9),
+                                    (4, 0.99, 0.9999), (4, 0.99, 0.99), (4, 0.99, 0.9), (4, 0.8, 0.9999),  (4, 0.8, 0.99),  (4, 0.8, 0.9),
+                                    ]
 
-    sgd_weights = []
-    adam_weights = []
-    for i in range(len(alpha_values_sgd)):
-        sgd_weights.append(copy.deepcopy(gradient_descent(Xs_tr, Ys_tr, gamma, W0,
-                                                          alpha_values_sgd[i], num_epochs, monitor_period)))
-
-    for i in range(len(alpha_values_adam)):
-        for j in range(len(rho1_values)):
-            for k in range(len(rho2_values)):
-                adam_weights.append(copy.deepcopy(adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1_values[j], rho2_values[k], B, eps, num_epochs, monitor_period)))
-
-    hyper_variations = sgd_weights + adam_weights
-    hyper_errors_tr, hyper_errors_te, hyper_loss_tr = eval_tr_te_loss(
-        hyper_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # sgd_weights = []
+    # adam_weights = []
+    # for i in range(len(alpha_values_sgd)):
+    #     sgd_weights.append(copy.deepcopy(sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0,
+    #                                                       alpha_values_sgd[i], B, num_epochs, monitor_period)))
+    # adam_hyperparameter_permutations = []
+    # for i in range(len(alpha_values_adam)):
+    #     for j in range(len(rho1_values)):
+    #         for k in range(len(rho2_values)):
+    #             adam_hyperparameter_permutations.append((i,j,k))
+    #             adam_weights.append(copy.deepcopy(adam(Xs_tr, Ys_tr, gamma, W0, alpha_values_adam[i], rho1_values[j], rho2_values[k], B, eps, num_epochs, monitor_period)))
+    # hyper_variations = sgd_weights + adam_weights
+    # hyper_errors_tr, hyper_errors_te, hyper_loss_tr = eval_tr_te_loss(
+    #     hyper_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
     hyper_data = [hyper_errors_tr, hyper_errors_te, hyper_loss_tr]
+    # for i, data in enumerate(hyper_data):
+    #     try:
+    #         filename = "{}_data.csv".format(["Training Error", "Test Error", "Training Loss"][i])
+    #         np.savetxt(filename, np.array(data), delimiter=",")
+    #     except:
+    #         print("couldn't save hyper_data {}".format(filename))
+    
+    legend_sgd_hyp = ["Stochastic Gradient Descent α = {}".format(a) for a in alpha_values_sgd]
+    legend_sgd_nest_hyp = ["Adam, α = {}, ρ1 = {}, ρ2 = {}".format(i, j, k) for i, j, k in hyperparameters_permutations]
 
-    legend_gd_hyp = ["Gradient descent α = {}".format(a) for a in alpha_values_adam]
-    legend_gd_nest_hyp = ["Adam, α = {}, ρ1 = {}, ρ2 = {}".format(a, b[0],b[1]) for a, b in
-                          zip(alpha_values_adam, (rho1_values,rho2_values))]
-
-    plot_tr_te_loss(hyper_data, num_epochs, legend_gd_hyp + legend_gd_nest_hyp, 1)
+    plot_tr_te_loss(hyper_data, num_epochs, legend_sgd_hyp + legend_sgd_nest_hyp, 3)
+    
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     # TODO add code to produce figures
-    part_1(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # part_1(Xs_tr, Ys_tr, Xs_te, Ys_te)
     # part_2(Xs_tr, Ys_tr, Xs_te, Ys_te)
-    # part_3(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    part_3(Xs_tr, Ys_tr, Xs_te, Ys_te)
