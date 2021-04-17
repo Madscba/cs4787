@@ -1,2 +1,51 @@
 
 pa2release/data/MNIST.pickle
+pa1release/__pycache__/main.cpython-38.pyc
+pa1release/data/delete.py
+pa2release/__pycache__/main.cpython-38.pyc
+pa2release/error_estimate_plot_train.png
+pa2release/error_estimate_plot_test.png
+pa2release/mads_error_estimate_plot_test.png
+pa2release/mads_error_estimate_plot_train.png
+pa3release/__pycache__/main.cpython-38.pyc
+pa3release/data/MNIST.pickle
+pa3release/hyper_comparison_part1_10.png
+pa3release/Part1_TestError12.png
+pa3release/Part1_TestError18.png
+pa3release/Part1_TestError3.png
+pa3release/Part1_TestError8.png
+pa3release/Part1_TestError9.png
+pa3release/Part1_TestError_full.png
+pa3release/Part1_TrainingError12.png
+pa3release/Part1_TrainingError18.png
+pa3release/Part1_TrainingError3.png
+pa3release/Part1_TrainingError8.png
+pa3release/Part1_TrainingError9.png
+pa3release/Part1_TrainingError_full.png
+pa3release/Part1_TrainingLoss12.png
+pa3release/Part1_TrainingLoss18.png
+pa3release/Part1_TrainingLoss3.png
+pa3release/Part1_TrainingLoss8.png
+pa3release/Part1_TrainingLoss9.png
+pa3release/Part1_TrainingLoss_full.png
+pa3release/Part2_TestError3.png
+pa3release/Part2_TestError6.png
+pa3release/Part2_TrainingError3.png
+pa3release/Part2_TrainingError6.png
+pa3release/Part2_TrainingLoss3.png
+pa3release/Part2_TrainingLoss6.png
+pa3release/Part3_TestError2.png
+pa3release/Part3_TrainingError2.png
+pa3release/Part3_TrainingLoss2.png
+pa4release/release/data/Part_1_Adam_Accuracies.png
+pa4release/release/data/Part_1_Adam_Losses.png
+pa4release/release/data/Part_1_SGD momentum & batch_norm_Accuracies.png
+pa4release/release/data/Part_1_SGD momentum & batch_norm_Losses.png
+pa4release/release/data/Part_1_SGD no momentum_Accuracies.png
+pa4release/release/data/Part_1_SGD no momentum_Losses.png
+pa4release/release/data/Part_1_SGD with momentum_Accuracies.png
+pa4release/release/data/Part_1_SGD with momentum_Losses.png
+pa4release/release/data/t10k-images-idx3-ubyte.gz
+pa4release/release/data/t10k-labels-idx1-ubyte.gz
+pa4release/release/data/train-images-idx3-ubyte.gz
+pa4release/release/data/train-labels-idx1-ubyte.gz

@@ -123,32 +123,75 @@ def plot_function(errors_tr,errors_te):
         matplotlib.pyplot.show()
 
 if __name__ == "__main__":
-    (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
-    d, n = Xs_tr.shape
-    c, _ = Ys_tr.shape
+    from main import stochastic_gradient_descent,sgd_sequential_scan,sgd_minibatch,sgd_minibatch_sequential_scan
+
+    Xs = np.array([[.8, .3, .1, .8],
+                   [.5, .8, .5, .4]])
+    Ys = np.array([[1, 0, 0, 1],
+                   [0, 1, 1, 0]])
+    W = np.zeros((2, 2))
+
+
+    d, n = Xs.shape
+    c, _ = Ys.shape
     gamma = 0.0001
     alpha_sgd = 0.001
     alpha_mb_sgd = 0.05
-    num_epoch = 10
+    num_epoch = 100
     monitor_period_sgd = 6000
     monitor_period_mb_sgd = 100
-    batch_size = 60
-    W0 = np.random.normal(0, 1, size=(c, d))
+    batch_size = 2
+    # W0 = np.random.normal(0, 1, size=(c, d))
 
-    alg2_w = sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_sgd, num_epoch, monitor_period_sgd)
+    metadata = {'d': d,
+                'n' : n,
+                'c' : c,
+                'gamma' : gamma,
+                'alpha_sgd' : alpha_sgd,
+                'alpha_mb_sgd' : alpha_mb_sgd,
+                'num_epoch' : num_epoch,
+                'monitor_period_sgd' : monitor_period_sgd,
+                'monitor_period_mb_sgd' : monitor_period_mb_sgd,
+                'W0' : W,
+                'batch_size': batch_size}
+    gamma, W0, num_epoch = metadata['gamma'], metadata['W0'], metadata['num_epoch']
+    monitor_period_sgd, monitor_period_mb_sgd = metadata['monitor_period_sgd'], metadata['monitor_period_mb_sgd']
+    alpha_sgd, alpha_mb_sgd = metadata['alpha_sgd'], metadata['alpha_mb_sgd']
+    # SGD
+    sgd = stochastic_gradient_descent(Xs, Ys, gamma, W0, alpha_sgd, num_epoch, monitor_period_sgd)
+    sgd_seq = sgd_sequential_scan(Xs, Ys, gamma, W0, alpha_sgd, num_epoch, monitor_period_sgd)
 
-    alg4_w = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
-    alg4_wv2 = sgd_minibatch_sequential_scanv2(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
-
-    # algo5_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd*5, num_epoch, monitor_period_mb_sgd)
-
-    errors_tr = np.zeros((3, 10 * num_epoch + 1))
-    errors_te = np.zeros((3, 10 * num_epoch + 1))
-
-    alg_weights = [alg2_w, alg4_w,alg4_wv2]
-    for i in tqdm(range(3)):
-        errors_tr[i, :] = [multinomial_logreg_error(Xs_tr, Ys_tr, w) for w in alg_weights[i]]
-        errors_te[i, :] = [multinomial_logreg_error(Xs_te, Ys_te, w) for w in alg_weights[i]]
-
-    plot_function(errors_tr, errors_te)
-    pass
+    # Minibatch SGD
+    mb_sgd = sgd_minibatch(Xs, Ys, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
+    mb_sgd_seq = sgd_minibatch_sequential_scan(Xs, Ys, gamma, W0, alpha_mb_sgd, batch_size, num_epoch,
+                                               monitor_period_mb_sgd)
+    print("Succes")
+    # (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
+    # d, n = Xs_tr.shape
+    # c, _ = Ys_tr.shape
+    # gamma = 0.0001
+    # alpha_sgd = 0.001
+    # alpha_mb_sgd = 0.05
+    # num_epoch = 10
+    # monitor_period_sgd = 6000
+    # monitor_period_mb_sgd = 100
+    # batch_size = 60
+    # W0 = np.random.normal(0, 1, size=(c, d))
+    #
+    # alg2_w = sgd_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_sgd, num_epoch, monitor_period_sgd)
+    #
+    # alg4_w = sgd_minibatch_sequential_scan(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
+    # alg4_wv2 = sgd_minibatch_sequential_scanv2(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd, batch_size, num_epoch, monitor_period_mb_sgd)
+    #
+    # # algo5_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0, alpha_mb_sgd*5, num_epoch, monitor_period_mb_sgd)
+    #
+    # errors_tr = np.zeros((3, 10 * num_epoch + 1))
+    # errors_te = np.zeros((3, 10 * num_epoch + 1))
+    #
+    # alg_weights = [alg2_w, alg4_w,alg4_wv2]
+    # for i in tqdm(range(3)):
+    #     errors_tr[i, :] = [multinomial_logreg_error(Xs_tr, Ys_tr, w) for w in alg_weights[i]]
+    #     errors_te[i, :] = [multinomial_logreg_error(Xs_te, Ys_te, w) for w in alg_weights[i]]
+    #
+    # plot_function(errors_tr, errors_te)
+    # pass

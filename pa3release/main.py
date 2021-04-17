@@ -318,11 +318,20 @@ def part_1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     d, n = Xs_tr.shape
     c, _ = Ys_tr.shape
     W0 = np.random.normal(0, 1, size=(c, d))
+    Xs_tr = np.array([[.8, .3, .1, .8],
+                   [.5, .8, .5, .4]])
+    Ys_tr = np.array([[1, 0, 0, 1],
+                   [0, 1, 1, 0]])
+    W0 = np.zeros((2, 2))
+    Xs_te = np.array([[.8, .3, .1, .8],
+                   [.5, .8, .5, .4]])
+    Ys_te = np.array([[1, 0, 0, 1],
+                   [0, 1, 1, 0]])
     gamma = 0.0001
     alpha = 1.0
     beta1 = 0.9
     beta2 = 0.99
-    num_epochs = 100
+    num_epochs = 2
     monitor_period = 1
     # gd_w = gradient_descent(Xs_tr, Ys_tr, gamma, W0,
     #                         alpha, num_epochs, monitor_period)
@@ -386,19 +395,28 @@ def part_2(Xs_tr, Ys_tr, Xs_te, Ys_te):
     d, n = Xs_tr.shape
     c, _ = Ys_tr.shape
     W0 = np.random.normal(0, 1, size=(c, d))
+    Xs_tr = np.array([[.8, .3, .1, .8],
+                   [.5, .8, .5, .4]])
+    Ys_tr = np.array([[1, 0, 0, 1],
+                   [0, 1, 1, 0]])
+    W0 = np.zeros((2, 2))
+    Xs_te = np.array([[.8, .3, .1, .8],
+                   [.5, .8, .5, .4]])
+    Ys_te = np.array([[1, 0, 0, 1],
+                   [0, 1, 1, 0]])
     gamma = 0.0001
     alpha = 0.2
     B = 600
     beta1 = 0.9
     beta2 = 0.99
-    num_epochs = 100
+    num_epochs = 2
     monitor_period = 100
-    # sgd_mss_w = sgd_minibatch_sequential_scan(
-    #     Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
-    # sgd_mss_9_w = sgd_mss_with_momentum(
-    #     Xs_tr, Ys_tr, gamma, W0, alpha, beta1, B, num_epochs, monitor_period)
-    # sgd_mss_99_w = sgd_mss_with_momentum(
-    #     Xs_tr, Ys_tr, gamma, W0, alpha, beta2, B, num_epochs, monitor_period)
+    sgd_mss_w = sgd_minibatch_sequential_scan(
+        Xs_tr, Ys_tr, gamma, W0, alpha, B, num_epochs, monitor_period)
+    sgd_mss_9_w = sgd_mss_with_momentum(
+        Xs_tr, Ys_tr, gamma, W0, alpha, beta1, B, num_epochs, monitor_period)
+    sgd_mss_99_w = sgd_mss_with_momentum(
+        Xs_tr, Ys_tr, gamma, W0, alpha, beta2, B, num_epochs, monitor_period)
     # # 4. Evaluating training, test, loss for each model
     # p2_variations = [sgd_mss_w, sgd_mss_9_w, sgd_mss_99_w]
     # p2_errors_tr, p2_errors_te, p2_loss_tr = eval_tr_te_loss(
@@ -456,6 +474,15 @@ def part_3(Xs_tr, Ys_tr, Xs_te, Ys_te):
     d, n = Xs_tr.shape
     c, _ = Ys_tr.shape
     W0 = np.random.normal(0, 1, size=(c, d))
+    Xs_tr = np.array([[.8, .3, .1, .8],
+                   [.5, .8, .5, .4]])
+    Ys_tr = np.array([[1, 0, 0, 1],
+                   [0, 1, 1, 0]])
+    W0 = np.zeros((2, 2))
+    Xs_te = np.array([[.8, .3, .1, .8],
+                   [.5, .8, .5, .4]])
+    Ys_te = np.array([[1, 0, 0, 1],
+                   [0, 1, 1, 0]])
     gamma = 0.0001
     alpha_sgd = 0.2
     alpha_adam = 0.01
@@ -463,22 +490,22 @@ def part_3(Xs_tr, Ys_tr, Xs_te, Ys_te):
     B = 600
     rho1 = 0.9
     rho2 = 0.999
-    num_epochs = 100
+    num_epochs = 2
     monitor_period = 100
 
-    # sgd_mss_w = sgd_minibatch_sequential_scan(
-    #     Xs_tr, Ys_tr, gamma, W0, alpha_sgd, B, num_epochs, monitor_period)
-    # adam_w = adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1, rho2, B, eps, num_epochs, monitor_period)
+    sgd_mss_w = sgd_minibatch_sequential_scan(
+        Xs_tr, Ys_tr, gamma, W0, alpha_sgd, B, num_epochs, monitor_period)
+    adam_w = adam(Xs_tr, Ys_tr, gamma, W0, alpha_adam, rho1, rho2, B, eps, num_epochs, monitor_period)
 
-    # # 3. Evaluating training, test, loss for each model
-    # p3_variations = [sgd_mss_w, adam_w]
-    # p3_errors_tr, p3_errors_te, p3_loss_tr = eval_tr_te_loss(
-    #     p3_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
-    # # 4. Plot training, test, and loss
-    # plot_data = [p3_errors_tr, p3_errors_te, p3_loss_tr]
-    # legend = ["Stochastic gradient descent α = 0.2",
-    #           "Adam, α = 0.01, ρ1 = 0.9, ρ2 = 0.999"]
-    # plot_tr_te_loss(plot_data, num_epochs, legend, 3)
+    # 3. Evaluating training, test, loss for each model
+    p3_variations = [sgd_mss_w, adam_w]
+    p3_errors_tr, p3_errors_te, p3_loss_tr = eval_tr_te_loss(
+        p3_variations, gamma, Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # 4. Plot training, test, and loss
+    plot_data = [p3_errors_tr, p3_errors_te, p3_loss_tr]
+    legend = ["Stochastic gradient descent α = 0.2",
+              "Adam, α = 0.01, ρ1 = 0.9, ρ2 = 0.999"]
+    plot_tr_te_loss(plot_data, num_epochs, legend, 3)
 
     # # 5. Run each algorithm 5 times (4 more) and average the time
     # num_runs = 5
