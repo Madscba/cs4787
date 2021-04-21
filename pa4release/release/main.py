@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 plt.style.use('bmh')
 import mnist
 import pickle
-# matplotlib.use('agg')
+matplotlib.use('agg')
 from matplotlib import pyplot
 
 import tensorflow as tf
