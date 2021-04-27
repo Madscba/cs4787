@@ -245,7 +245,7 @@ def plot_metric(tr, val, te, title, metric, epochs):
     pyplot.xlabel("Epochs")
     pyplot.ylabel(metric)
     pyplot.legend()
-    pyplot.savefig(title+" "+metric)
+    # pyplot.savefig(title+" "+metric)
     pyplot.clf()
 
 
