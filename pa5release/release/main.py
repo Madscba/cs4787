@@ -190,26 +190,37 @@ def gradient_descent(objective, x0, alpha, num_iters):
 #   Ys              vector of objective values for all points searched (size: num_iters)
 #   Xs              matrix of all points searched (size: d x num_iters)
 def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters):
+    x_best = np.NaN
     y_best = np.infty
-
     ys = []
     xs = []
-    for x in n_warmup:
+    for x in range(n_warmup):
         x_i = random_x()
         y_i = objective(x_i)
-        xs.append(xs)
+        xs.append(x_i)
         ys.append(y_i)
         if y_i <= y_best:
             x_best = x
             y_best = y_i
-    for i in range(n_warmup+1,num_iters):
+    for i in range(n_warmup,num_iters):
+        Xs = np.asarray(xs).transpose()
+        Ys = ys.asarray(ys)
         mean_variance_func = gp_prediction(Xs, Ys, gamma, sigma2_noise)
-        mean_variance_func()
-        x_star = acquisition(y_best, mean, variance)
+        x_star = np.NaN
+        acq_best = np.infty
+        for j in range(gd_nruns):
+            x_init = random_x()
+            mean, Sigma = mean_variance_func(x_init)
+            obj_min, x_min = gradient_descent(acquisition(y_best, mean[i], Sigma[i,i]), x_init, gd_alpha, num_iters)
+            if obj_min <= acq_best:
+                x_star = x_min
+                acq_best = obj_min
         y_i = objective(x_star)
         if y_i <= y_best:
             x_best = x
             y_best = y_i
+        xs.append(x_star)
+        ys.append(y_i)
     return x_best
     # TODO students should implement this
 
