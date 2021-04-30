@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import numpy
+import numpy as np
 from numpy import random
 import scipy
 from scipy import special
@@ -71,9 +72,22 @@ def gaussian_pmf(u):
 # gamma     gamma parameter for the RBF kernel
 #
 # returns   an (m x n) matrix Sigma where Sigma[i,j] = K(Xs[:,i], Zs[:,j])
-def rbf_kernel_matrix(Xs, Zs, gamma):
-    # TODO students should implement this
+#
+def rbf_kernel_matrix(Xs,Zs,gamma):
+    d1, m = Xs.shape
+    d2, n = Zs.shape
+    assert (d1 == d2), "Dimensions of input vectors must match!"
 
+    D = -2 * tf.matmul(Xs, Zs, transpose_a=True)
+    s1 = tf.reduce_sum(Xs ** 2, axis=0)
+    s2 = tf.reduce_sum(Zs ** 2, axis=0)
+    S = tf.tensordot(tf.transpose(s1), tf.ones(n),axes=0)
+    R = tf.tensordot(tf.ones(m), tf.transpose(s2),axes=0)
+    G = tf.matmul(Xs, Zs, transpose_a=True)
+    D = S + R - 2 * G
+    # D = tf.maximum(D, 0)
+    D = tf.math.exp(-gamma * tf.abs(D))
+    return D
 # compute the distribution predicted by a Gaussian process that uses an RBF kernel (in TensorFlow)
 #
 # Xs            points at which to compute the kernel (size: d x n) where d is the number of parameters
@@ -85,10 +99,15 @@ def rbf_kernel_matrix(Xs, Zs, gamma):
 def gp_prediction(Xs, Ys, gamma, sigma2_noise):
     # first, do any work that can be shared among predictions
     # TODO students should implement this
+    Sigma_inv = tf.linalg.inv( rbf_kernel_matrix(Xs, Xs, gamma) + tf.eye(Xs.shape[1]) * sigma2_noise )
+    general_term = tf.matmul(Sigma_inv, Ys)
     # next, define a nested function to return
     def prediction_mean_and_variance(Xtest):
         # TODO students should implement this
         # construct mean and variance
+        k_star_T = tf.transpose(rbf_kernel_matrix(Xs,Xtest))
+        mean = tf.matmul(k_star_T,general_term)
+        variance = rbf_kernel_matrix(Xtest,Xtest) + sigma2_noise - tf.matmul(tf.matmul(k_star_T ,Sigma_inv), np.transpose(k_star_T))
         return (mean, variance)
     #finally, return the nested function
     return prediction_mean_and_variance
@@ -103,6 +122,8 @@ def gp_prediction(Xs, Ys, gamma, sigma2_noise):
 # returns   PI acquisition function
 def pi_acquisition(Ybest, mean, stdev):
     # TODO students should implement this
+    Z = (Ybest-mean) / stdev
+    return - gaussian_cdf(Z)
 
 
 # compute the expected improvement (EI) acquisition function
@@ -114,6 +135,8 @@ def pi_acquisition(Ybest, mean, stdev):
 # returns   EI acquisition function
 def ei_acquisition(Ybest, mean, stdev):
     # TODO students should implement this
+    Z = (Ybest-mean) / stdev
+    return - ( gaussian_pmf(Z) + Z * gaussian_cdf(Z) )*stdev
 
 
 # return a function that computes the lower confidence bound (LCB) acquisition function
@@ -124,6 +147,7 @@ def ei_acquisition(Ybest, mean, stdev):
 def lcb_acquisition(kappa):
     def A_lcb(Ybest, mean, stdev):
         # TODO students should implement this
+        return mean - kappa*stdev
     return A_lcb
 
 
@@ -166,11 +190,33 @@ def gradient_descent(objective, x0, alpha, num_iters):
 #   Ys              vector of objective values for all points searched (size: num_iters)
 #   Xs              matrix of all points searched (size: d x num_iters)
 def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters):
+    y_best = np.infty
+
+    ys = []
+    xs = []
+    for x in n_warmup:
+        x_i = random_x()
+        y_i = objective(x_i)
+        xs.append(xs)
+        ys.append(y_i)
+        if y_i <= y_best:
+            x_best = x
+            y_best = y_i
+    for i in range(n_warmup+1,num_iters):
+        mean_variance_func = gp_prediction(Xs, Ys, gamma, sigma2_noise)
+        mean_variance_func()
+        x_star = acquisition(y_best, mean, variance)
+        y_i = objective(x_star)
+        if y_i <= y_best:
+            x_best = x
+            y_best = y_i
+    return x_best
     # TODO students should implement this
 
 
 # a one-dimensional test objective function on which to run Bayesian optimization
 def test_objective(x):
+    pass
     return (numpy.cos(8.0*x) - 0.3 + (x-0.5)**2)
 
 
@@ -302,6 +348,7 @@ def multinomial_logreg_loss(Xs, Ys, gamma, W):
 #
 # returns         a list of model parameters, one every "monitor_period" batches
 def sgd_mss_with_momentum(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs, monitor_period):
+    pass
     # TODO students should use their implementation from programming assignment 3
 
 
@@ -319,9 +366,26 @@ def sgd_mss_with_momentum(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs, monitor
 #                       and returns (the validation error of the final trained model after all the epochs) minus 0.9.
 #                       if training diverged (i.e. any of the weights are non-finite) then return 0.1, which corresponds to an error of 1.
 def mnist_sgd_mss_with_momentum(mnist_dataset, num_epochs, B):
+    pass
     # TODO students should implement this
 
 
 if __name__ == "__main__":
+    d,n,m = 10,5,6
+    initializer = tf.random_normal_initializer(mean=1., stddev=2.)
+    Xs = tf.Variable(initializer(shape=[d, m], dtype=tf.float32))
+    Zs = tf.Variable(initializer(shape=[d, n], dtype=tf.float32))
+    Ys = tf.Variable(initializer(shape=[m, 1], dtype=tf.float32))
+    gamma = 0.1
+    # gp_prediction(Xs,Ys,gamma,2)
+    RBFkernel = rbf_kernel_matrix(Xs, Zs, gamma)
+    print(np.array(RBFkernel))
+    RBFkernel1 = rbf_kernel_matrix1(Xs,Zs,gamma)
+    print(np.array(RBFkernel1))
+    pass
+    a = 2
+    # RBFkernel = rbf_kernel_matrix(Xs, Xs, gamma)
+
+    a = 2
     # TODO students should implement plotting functions here
 
