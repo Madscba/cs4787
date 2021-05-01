@@ -76,9 +76,9 @@ def gaussian_pmf(u):
 def rbf_kernel_matrix(Xs,Zs,gamma):
     d1, m = Xs.shape
     d2, n = Zs.shape
-    assert (d1 == d2), "Dimensions of input vectors must match!"
+    # assert (d1 == d2), "Dimensions of input vectors must match!"
 
-    D = -2 * tf.matmul(Xs, Zs, transpose_a=True)
+    D = -2 * tf.matmul(Xs, Zs, transpose_a=True) #Was set to true
     s1 = tf.reduce_sum(Xs ** 2, axis=0)
     s2 = tf.reduce_sum(Zs ** 2, axis=0)
     S = tf.tensordot(tf.transpose(s1), tf.ones(n),axes=0)
@@ -105,9 +105,9 @@ def gp_prediction(Xs, Ys, gamma, sigma2_noise):
     def prediction_mean_and_variance(Xtest):
         # TODO students should implement this
         # construct mean and variance
-        k_star_T = tf.transpose(rbf_kernel_matrix(Xs,Xtest))
+        k_star_T = tf.transpose(rbf_kernel_matrix(Xs,Xtest,gamma))
         mean = tf.matmul(k_star_T,general_term)
-        variance = rbf_kernel_matrix(Xtest,Xtest) + sigma2_noise - tf.matmul(tf.matmul(k_star_T ,Sigma_inv), np.transpose(k_star_T))
+        variance = rbf_kernel_matrix(Xtest,Xtest,gamma) + sigma2_noise - tf.matmul(tf.matmul(k_star_T ,Sigma_inv), np.transpose(k_star_T))
         return (mean, variance)
     #finally, return the nested function
     return prediction_mean_and_variance
@@ -195,30 +195,35 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
     ys = []
     xs = []
     for x in range(n_warmup):
-        x_i = random_x()
+        x_i = random_x(d)
         y_i = objective(x_i)
         xs.append(x_i)
         ys.append(y_i)
         if y_i <= y_best:
-            x_best = x
+            x_best = x_i
             y_best = y_i
+            print("Warmup: x_i: {}, y_i: {}".format(float(x_best),float(y_best)))
     for i in range(n_warmup,num_iters):
         Xs = np.asarray(xs).transpose()
-        Ys = ys.asarray(ys)
+        Ys = np.asarray(tf.squeeze(ys,-1))
+        if len(Xs.shape) < 2:
+            Xs = tf.reshape(Xs, [1,Xs.shape[0]])
         mean_variance_func = gp_prediction(Xs, Ys, gamma, sigma2_noise)
         x_star = np.NaN
         acq_best = np.infty
         for j in range(gd_nruns):
-            x_init = random_x()
+            x_init = random_x(d)
             mean, Sigma = mean_variance_func(x_init)
-            obj_min, x_min = gradient_descent(acquisition(y_best, mean[i], Sigma[i,i]), x_init, gd_alpha, num_iters)
+            x_optimal = acquisition(y_best, mean, Sigma)
+            obj_min, x_min = gradient_descent(objective, x_optimal, gd_alpha, num_iters)
             if obj_min <= acq_best:
                 x_star = x_min
                 acq_best = obj_min
         y_i = objective(x_star)
         if y_i <= y_best:
-            x_best = x
+            x_best = x_min
             y_best = y_i
+            print("Actual bayes: x_i: {}, y_i: {}".format(float(x_best),float(y_best)))
         xs.append(x_star)
         ys.append(y_i)
     return x_best
@@ -379,24 +384,34 @@ def sgd_mss_with_momentum(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs, monitor
 def mnist_sgd_mss_with_momentum(mnist_dataset, num_epochs, B):
     pass
     # TODO students should implement this
+def random_xs(d):
+    random_uni_initializer = tf.random_uniform_initializer(minval=0, maxval=1, seed=None)
+    return tf.Variable(random_uni_initializer(shape=[d, 1], dtype=tf.float32))
 
 
 if __name__ == "__main__":
-    d,n,m = 10,5,6
+    d,n,m = 1,5,6
     initializer = tf.random_normal_initializer(mean=1., stddev=2.)
-    Xs = tf.Variable(initializer(shape=[d, m], dtype=tf.float32))
-    Zs = tf.Variable(initializer(shape=[d, n], dtype=tf.float32))
-    Ys = tf.Variable(initializer(shape=[m, 1], dtype=tf.float32))
-    gamma = 0.1
-    # gp_prediction(Xs,Ys,gamma,2)
-    RBFkernel = rbf_kernel_matrix(Xs, Zs, gamma)
-    print(np.array(RBFkernel))
-    RBFkernel1 = rbf_kernel_matrix1(Xs,Zs,gamma)
-    print(np.array(RBFkernel1))
-    pass
-    a = 2
-    # RBFkernel = rbf_kernel_matrix(Xs, Xs, gamma)
+    # Xs = tf.Variable(initializer(shape=[d, m], dtype=tf.float32))
+    # Zs = tf.Variable(initializer(shape=[d, n], dtype=tf.float32))
+    # Ys = tf.Variable(initializer(shape=[m, 1], dtype=tf.float32))
 
-    a = 2
+
+
+    # gp_prediction(Xs,Ys,gamma,2)
+    # RBFkernel = rbf_kernel_matrix(Xs, Zs, gamma)
+    # print(np.array(RBFkernel))
+    pass
+    gamma = 10
+    sigma2_noise = 0.001
+    gd_nruns, gd_alpha, gd_niters = 100, 0.05, 100
+    n_warmup, num_iters = 3,20
+    kappa = 2
+    #(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+    best_x_pi = bayes_opt(test_objective, d, gamma, sigma2_noise, pi_acquisition, random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+    best_x_ei = bayes_opt(test_objective, d, gamma, sigma2_noise, ei_acquisition, random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+    best_x_lcb = bayes_opt(test_objective, d, gamma, sigma2_noise, lcb_acquisition(kappa), random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+    print("pi: {}, ei: {}, lcb: {}".format(float(test_objective(best_x_pi)),float(test_objective(best_x_ei)),float(test_objective(best_x_lcb))))
+
     # TODO students should implement plotting functions here
 
