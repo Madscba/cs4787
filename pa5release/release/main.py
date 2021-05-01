@@ -210,37 +210,53 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
         y_i = objective(x_i)
         xs.append(x_i)
         ys.append(y_i)
+        print(x_i.shape)
         if y_i <= y_best:
             x_best = x_i
             y_best = y_i
             print("Warmup: x_i: {}, y_i: {}".format(float(x_best),float(y_best)))
+
+    def inner_opt_obj(x):
+            # tmpXs = xs.copy()
+            # tmpYs = ys.copy()
+            # mean_variance_func = gp_prediction(Xs, Ys, gamma, sigma2_noise)
+            mean, Sigma = mean_variance_func(x)
+            return acquisition(mean, Sigma, y_best)
+
+
+    # Xs = tf.transpose(tf.convert_to_tensor(xs,dtype=tf.float64) )
+    # if len(np.shape(Xs)) < 2:
+    #     Xs = tf.reshape(Xs, [1,Xs.shape[0]])
+    # if len(np.shape(ys)) > 2:
+    #     Ys = tf.convert_to_tensor(tf.squeeze(ys,-1),dtype=tf.float64)
+    # else:
+    #     Ys = tf.convert_to_tensor(ys,dtype=tf.float64)
     for i in range(n_warmup,num_iters):
-        if i ==n_warmup:
-            Xs = tf.transpose(tf.convert_to_tensor(xs,dtype=tf.float64) )
-            if len(np.shape(Xs)) < 2:
-                Xs = tf.reshape(Xs, [1,Xs.shape[0]])
-            if len(np.shape(ys)) > 2:
-                Ys = tf.convert_to_tensor(tf.squeeze(ys,-1),dtype=tf.float64)
-            else:
-                Ys = tf.convert_to_tensor(ys,dtype=tf.float64)
+        Xs = tf.transpose(tf.convert_to_tensor(xs,dtype=tf.float64) )
+        if len(np.shape(Xs)) < 2:
+            Xs = tf.reshape(Xs, [1,Xs.shape[0]])
+        if len(np.shape(ys)) > 2:
+            Ys = tf.convert_to_tensor(tf.squeeze(ys,-1),dtype=tf.float64)
+        else:
+            Ys = tf.convert_to_tensor(ys,dtype=tf.float64)
+        
         mean_variance_func = gp_prediction(Xs, Ys, gamma, sigma2_noise)
-        x_star = np.NaN
+        x_i = np.NaN
         acq_best = np.infty
         for j in range(gd_nruns):
             x_init = tf.convert_to_tensor(random_x(d).reshape(-1,1),dtype=tf.float64)
-            mean, Sigma = mean_variance_func(x_init)
-            x_optimal = acquisition(y_best, mean, Sigma)
-            obj_min, x_min = gradient_descent(objective, x_optimal, gd_alpha, num_iters)
+            obj_min, x_min = gradient_descent(inner_opt_obj, x_init, gd_alpha, gd_niters)
             if obj_min <= acq_best:
-                x_star = x_min
+                x_i = x_min
                 acq_best = obj_min
-        y_i = objective(x_star)
+        y_i = objective(x_i)
         if y_i <= y_best:
-            x_best = x_min
+            x_best = x_i
             y_best = y_i
             print("Actual bayes: x_i: {}, y_i: {}".format(float(x_best),float(y_best)))
-        xs.append(tf.squeeze ( tf.convert_to_tensor(x_star,dtype=tf.float64),1))
-        ys.append(y_i)
+        xs.append(tf.squeeze ( tf.convert_to_tensor(x_i,dtype=tf.float64),1))
+
+        ys.append(tf.squeeze(y_i),1)
     return y_best,x_best,ys,xs
     # TODO students should implement this
 
@@ -513,11 +529,11 @@ def part_2():
     # Parts 1 and 2
     all_y_best, all_x_best = part_2_12(acq_ind_to_video)
     
-    # Part 3
-    part_2_3(acq_ind_to_ex, gamma_vals, all_y_best[acq_ind_to_ex], all_x_best[acq_ind_to_ex])
+    # # Part 3
+    # part_2_3(acq_ind_to_ex, gamma_vals, all_y_best[acq_ind_to_ex], all_x_best[acq_ind_to_ex])
     
-    # Part 4
-    part_2_4(kappa_vals, all_y_best[2], all_x_best[2])
+    # # Part 4
+    # part_2_4(kappa_vals, all_y_best[2], all_x_best[2])
 
 if __name__ == "__main__":
     d,n,m = 1,5,6
