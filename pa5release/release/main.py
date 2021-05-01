@@ -91,8 +91,9 @@ def rbf_kernel_matrix(Xs,Zs,gamma):
     D = -2 * tf.matmul(Xs, Zs, transpose_a=True) #Was set to true
     s1 = tf.reduce_sum(Xs ** 2, axis=0)
     s2 = tf.reduce_sum(Zs ** 2, axis=0)
-    S = tf.tensordot(tf.transpose(s1), tf.ones(n),axes=0)
-    R = tf.tensordot(tf.ones(m), tf.transpose(s2),axes=0)
+    #print((tf.transpose(s1)).dtype,tf.ones(n,dtype=tf.float64).dtype)
+    S = tf.tensordot(tf.transpose(s1), tf.ones(n,dtype=tf.float64),axes=0)
+    R = tf.tensordot(tf.ones(m,dtype=tf.float64), tf.transpose(s2),axes=0)
     G = tf.matmul(Xs, Zs, transpose_a=True)
     D = S + R - 2 * G
     # D = tf.maximum(D, 0)
@@ -109,7 +110,7 @@ def rbf_kernel_matrix(Xs,Zs,gamma):
 def gp_prediction(Xs, Ys, gamma, sigma2_noise):
     # first, do any work that can be shared among predictions
     # TODO students should implement this
-    Sigma_inv = tf.linalg.inv( rbf_kernel_matrix(Xs, Xs, gamma) + tf.eye(Xs.shape[1]) * sigma2_noise )
+    Sigma_inv = tf.linalg.inv( rbf_kernel_matrix(Xs, Xs, gamma) + tf.eye(Xs.shape[1],dtype=tf.float64) * sigma2_noise )
     general_term = tf.matmul(Sigma_inv, Ys)
     # next, define a nested function to return
     def prediction_mean_and_variance(Xtest):
@@ -205,7 +206,7 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
     ys = []
     xs = []
     for x in range(n_warmup):
-        x_i = random_x(d)
+        x_i = tf.convert_to_tensor(random_x(d),dtype=tf.float64)
         y_i = objective(x_i)
         xs.append(x_i)
         ys.append(y_i)
@@ -214,15 +215,19 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
             y_best = y_i
             print("Warmup: x_i: {}, y_i: {}".format(float(x_best),float(y_best)))
     for i in range(n_warmup,num_iters):
-        Xs = np.asarray(xs).transpose()
-        Ys = np.asarray(tf.squeeze(ys,-1))
-        if len(Xs.shape) < 2:
-            Xs = tf.reshape(Xs, [1,Xs.shape[0]])
+        if i ==n_warmup:
+            Xs = tf.transpose(tf.convert_to_tensor(xs,dtype=tf.float64) )
+            if len(np.shape(Xs)) < 2:
+                Xs = tf.reshape(Xs, [1,Xs.shape[0]])
+            if len(np.shape(ys)) > 2:
+                Ys = tf.convert_to_tensor(tf.squeeze(ys,-1),dtype=tf.float64)
+            else:
+                Ys = tf.convert_to_tensor(ys,dtype=tf.float64)
         mean_variance_func = gp_prediction(Xs, Ys, gamma, sigma2_noise)
         x_star = np.NaN
         acq_best = np.infty
         for j in range(gd_nruns):
-            x_init = random_x(d)
+            x_init = tf.convert_to_tensor(random_x(d).reshape(-1,1),dtype=tf.float64)
             mean, Sigma = mean_variance_func(x_init)
             x_optimal = acquisition(y_best, mean, Sigma)
             obj_min, x_min = gradient_descent(objective, x_optimal, gd_alpha, num_iters)
@@ -234,9 +239,9 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
             x_best = x_min
             y_best = y_i
             print("Actual bayes: x_i: {}, y_i: {}".format(float(x_best),float(y_best)))
-        xs.append(x_star)
+        xs.append(tf.squeeze ( tf.convert_to_tensor(x_star,dtype=tf.float64),1))
         ys.append(y_i)
-    return x_best
+    return y_best,x_best,Ys,Xs
     # TODO students should implement this
 
 
@@ -420,8 +425,8 @@ def part_2_12(acq_ind):
         print("Running Bayesian optimization with acquisition function ", acq_func_str[i], ".")
         y_best, x_best, Ys, Xs = bayes_opt(objective, d, gamma, sigma2_noise, acq_funcs[i],
                                             random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
-        print("\t Best parameter value: ", x_best)
-        print("\t Best objective value: ", y_best)
+        print("\t Best parameter value: ", float(x_best))
+        print("\t Best objective value: ", float(y_best))
         all_y_best.append(y_best)
         all_x_best.append(x_best)
         all_Ys.append(Ys)
@@ -452,8 +457,8 @@ def part_2_3(acq_ind, gamma_vals, og_y_best, og_x_best, k = -1):
     acq = acq_funcs[acq_ind]
     
     print("Original Bayesian optimization with acquisition function ", acq_func_str[acq_ind], ", gamma=", gamma, ".")
-    print("\t Best parameter value: ", og_x_best)
-    print("\t Best objective value: ", og_y_best)
+    print("\t Best parameter value: ", float(og_x_best))
+    print("\t Best objective value: ", float(og_y_best))
     
     # track best param & obj
     all_x_best = []
@@ -464,13 +469,13 @@ def part_2_3(acq_ind, gamma_vals, og_y_best, og_x_best, k = -1):
         print("Running Bayesian optimization with acquisition function ", acq_func_str[acq_ind], ", gamma=", g, ".")
         y_best, x_best, Ys, Xs = bayes_opt(objective, d, g, sigma2_noise, acq,
                                             random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
-        print("\t Best parameter value: ", x_best)
-        print("\t Best objective value: ", y_best)
+        print("\t Best parameter value: ", float(x_best))
+        print("\t Best objective value: ", float(y_best))
         all_x_best.append(x_best)
         all_y_best.append(y_best)
         
-    print("\n All best parameter values: ", all_x_best)
-    print("All best objective values: ", all_y_best)
+    print("\n All best parameter values: ", [float(x) for x in  all_x_best])
+    print("All best objective values: ", [float(y) for y in  all_y_best])
 
 def part_2_4(kappa_vals, og_y, og_x):
     
@@ -478,8 +483,8 @@ def part_2_4(kappa_vals, og_y, og_x):
     objective = test_objective
     
     print("Original Bayesian optimization with acquisition function lcb, kappa=",kappa,".")
-    print("\t Best parameter value: ", og_x)
-    print("\t Best objective value: ", og_y)
+    print("\t Best parameter value: ", float(og_x))
+    print("\t Best objective value: ", float(og_y))
     
     # track best param & obj
     all_x_best = []
@@ -491,13 +496,13 @@ def part_2_4(kappa_vals, og_y, og_x):
         print("Running Bayesian optimization with acquisition function lcb, kappa=", k, ".")
         y_best, x_best, Ys, Xs = bayes_opt(objective, d, kappa, sigma2_noise, acq,
                                             random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
-        print("\t Best parameter value: ", x_best)
-        print("\t Best objective value: ", y_best)
+        print("\t Best parameter value: ", float(x_best))
+        print("\t Best objective value: ", float(y_best))
         all_x_best.append(x_best)
         all_y_best.append(y_best)
         
-    print("\n All best parameter values: ", all_x_best)
-    print("All best objective values: ", all_y_best)
+    print("\n All best parameter values: ", [float(x) for x in all_x_best])
+    print("All best objective values: ", [float(y) for y in all_y_best])
 
 def part_2():
     acq_ind_to_video = 0
@@ -527,16 +532,17 @@ if __name__ == "__main__":
     # RBFkernel = rbf_kernel_matrix(Xs, Zs, gamma)
     # print(np.array(RBFkernel))
     pass
-    gamma = 10
-    sigma2_noise = 0.001
-    gd_nruns, gd_alpha, gd_niters = 100, 0.05, 100
-    n_warmup, num_iters = 3,20
-    kappa = 2
-    #(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
-    best_x_pi = bayes_opt(test_objective, d, gamma, sigma2_noise, pi_acquisition, random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
-    best_x_ei = bayes_opt(test_objective, d, gamma, sigma2_noise, ei_acquisition, random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
-    best_x_lcb = bayes_opt(test_objective, d, gamma, sigma2_noise, lcb_acquisition(kappa), random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
-    print("pi: {}, ei: {}, lcb: {}".format(float(test_objective(best_x_pi)),float(test_objective(best_x_ei)),float(test_objective(best_x_lcb))))
+    # gamma = 10
+    # sigma2_noise = 0.001
+    # gd_nruns, gd_alpha, gd_niters = 100, 0.05, 100
+    # n_warmup, num_iters = 3,20
+    # kappa = 2
+    #Part 2.1
+    # #(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+    # best_x_pi = bayes_opt(test_objective, d, gamma, sigma2_noise, pi_acquisition, random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+    # best_x_ei = bayes_opt(test_objective, d, gamma, sigma2_noise, ei_acquisition, random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+    # best_x_lcb = bayes_opt(test_objective, d, gamma, sigma2_noise, lcb_acquisition(kappa), random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+    # print("pi: {}, ei: {}, lcb: {}".format(float(test_objective(best_x_pi)),float(test_objective(best_x_ei)),float(test_objective(best_x_lcb))))
     a = 2
     # RBFkernel = rbf_kernel_matrix(Xs, Xs, gamma)
     part_2()
