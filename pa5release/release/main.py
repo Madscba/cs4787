@@ -20,6 +20,16 @@ import tensorflow as tf
 mnist_data_directory = os.path.join(os.path.dirname(__file__), "data")
 
 ### hyperparameter settings and other constants
+d = 1
+gamma = 10
+sigma2_noise = 0.001
+random_x = np.random.rand
+gd_nruns = 20
+gd_alpha = 0.01
+gd_niters = 20
+n_warmup = 3
+num_iters = 20
+kappa = 2
 ### end hyperparameter settings
 
 def load_MNIST_dataset_with_validation_split():
@@ -380,6 +390,121 @@ def mnist_sgd_mss_with_momentum(mnist_dataset, num_epochs, B):
     pass
     # TODO students should implement this
 
+def part_2_12(acq_ind):
+    
+    # Set objective
+    objective = test_objective
+    
+    # Acquisition functions and names
+    acq_funcs = [pi_acquisition, ei_acquisition, lcb_acquisition(kappa)]
+    acq_func_str = ["Probability of improvement aquisition (pi)",
+                    "Expected improvement aquisition (ei)",
+                    "Lower confidence bound (lcb, kappa=", kappa, ")"]
+    
+    # Track previous values
+    all_y_best = []
+    all_x_best = []
+    all_Ys = []
+    all_Xs = []
+    
+    # Run Bayesian opt for each acquisition function
+    for i in range(len(acq_funcs)):
+        print("Running Bayesian optimization with acquisition function ", acq_func_str[i], ".")
+        y_best, x_best, Ys, Xs = bayes_opt(objective, d, gamma, sigma2_noise, acq_funcs[i],
+                                            random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+        print("\t Best parameter value: ", x_best)
+        print("\t Best objective value: ", y_best)
+        all_y_best.append(y_best)
+        all_x_best.append(x_best)
+        all_Ys.append(Ys)
+        all_Xs.append(Xs)
+            
+    # Choosing acquisition to animate
+    acq = acq_funcs[acq_ind]
+    Ys = all_Ys[acq_ind]
+    Xs = all_Xs[acq_ind]
+    xs_eval = Xs[0]
+    filename = "PrA5_p2_video.mp4"
+    #animate_predictions(objective, acq, gamma, sigma2_noise, Ys, Xs, xs_eval, filename)
+    
+    return all_y_best, all_x_best
+
+def part_2_3(acq_ind, gamma_vals, og_y_best, og_x_best, k = -1):
+    
+    # Set objective
+    objective = test_objective
+    
+    # Acquisition functions and names
+    acq_funcs = [pi_acquisition, ei_acquisition, lcb_acquisition(k)]
+    acq_func_str = ["Probability of improvement aquisition (pi)",
+                    "Expected improvement aquisition (ei)",
+                    "Lower confidence bound (lcb, kappa=", k, ")"]
+    
+    # Set acquisition function
+    acq = acq_funcs[acq_ind]
+    
+    print("Original Bayesian optimization with acquisition function ", acq_func_str[acq_ind], ", gamma=", gamma, ".")
+    print("\t Best parameter value: ", og_x_best)
+    print("\t Best objective value: ", og_y_best)
+    
+    # track best param & obj
+    all_x_best = []
+    all_y_best = []
+    
+    # for every gamma, run Baysian optimization
+    for g in gamma_vals:
+        print("Running Bayesian optimization with acquisition function ", acq_func_str[acq_ind], ", gamma=", g, ".")
+        y_best, x_best, Ys, Xs = bayes_opt(objective, d, g, sigma2_noise, acq,
+                                            random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+        print("\t Best parameter value: ", x_best)
+        print("\t Best objective value: ", y_best)
+        all_x_best.append(x_best)
+        all_y_best.append(y_best)
+        
+    print("\n All best parameter values: ", all_x_best)
+    print("All best objective values: ", all_y_best)
+
+def part_2_4(kappa_vals, og_y, og_x):
+    
+    # Set objective
+    objective = test_objective
+    
+    print("Original Bayesian optimization with acquisition function lcb, kappa=",kappa,".")
+    print("\t Best parameter value: ", og_x)
+    print("\t Best objective value: ", og_y)
+    
+    # track best param & obj
+    all_x_best = []
+    all_y_best = []
+    
+    # for every kappa, run Baysian optimization
+    for k in kappa_vals:
+        acq = lcb_acquisition(k)
+        print("Running Bayesian optimization with acquisition function lcb, kappa=", k, ".")
+        y_best, x_best, Ys, Xs = bayes_opt(objective, d, kappa, sigma2_noise, acq,
+                                            random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
+        print("\t Best parameter value: ", x_best)
+        print("\t Best objective value: ", y_best)
+        all_x_best.append(x_best)
+        all_y_best.append(y_best)
+        
+    print("\n All best parameter values: ", all_x_best)
+    print("All best objective values: ", all_y_best)
+
+def part_2():
+    acq_ind_to_video = 0
+    acq_ind_to_ex = 0
+    gamma_vals = [1, 20, 100]
+    kappa_vals = [1, 5, 10]
+    
+    # Parts 1 and 2
+    all_y_best, all_x_best = part_2_12(acq_ind_to_video)
+    
+    # Part 3
+    part_2_3(acq_ind_to_ex, gamma_vals, all_y_best[acq_ind_to_ex], all_x_best[acq_ind_to_ex])
+    
+    # Part 4
+    part_2_4(kappa_vals, all_y_best[2], all_x_best[2])
 
 if __name__ == "__main__":
     d,n,m = 10,5,6
@@ -396,6 +521,7 @@ if __name__ == "__main__":
     pass
     a = 2
     # RBFkernel = rbf_kernel_matrix(Xs, Xs, gamma)
+    part_2()
 
     a = 2
     # TODO students should implement plotting functions here
