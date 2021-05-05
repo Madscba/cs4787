@@ -13,6 +13,7 @@ from matplotlib import pyplot
 import matplotlib.animation as animation
 import copy
 import time
+import ffmpeg
 from tqdm import tqdm
 from scipy.special import softmax
 
@@ -243,7 +244,7 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
         if y_i <= y_best:
             x_best = x_i
             y_best = y_i
-            print("Warmup: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
+            # print("Warmup: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
 
     for i in range(n_warmup, num_iters):
         def inner_opt_obj(x):
@@ -274,14 +275,14 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
         if y_i <= y_best:
             x_best = x_i
             y_best = y_i
-            if not isinstance(x_best, float):
-                #print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in tf.squeeze(x_best)],
-                #                                              float(y_best)))
-                #print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best],
-                #                                              float(y_best)))
-                pass
-            else:
-                print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
+            # if not isinstance(x_best, float):
+            #     #print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in tf.squeeze(x_best)],
+            #     #                                              float(y_best)))
+            #     #print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best],
+            #     #                                              float(y_best)))
+            #     pass
+            # else:
+            #     print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
 
         xs.append(tf.squeeze(tf.convert_to_tensor(x_i, dtype=tf.float64), 1))
         if isinstance(y_i, float):
@@ -489,7 +490,7 @@ def part_2_12(acq_ind):
     acq_funcs = [pi_acquisition, ei_acquisition, lcb_acquisition(kappa)]
     acq_func_str = ["Probability of improvement aquisition (pi)",
                     "Expected improvement aquisition (ei)",
-                    "Lower confidence bound (lcb, kappa=" + kappa + ")"]
+                    "Lower confidence bound (lcb, kappa=" + str(kappa) + ")"]
 
     # Track previous values
     all_y_best = []
