@@ -91,8 +91,18 @@ def gaussian_pmf(u):
 # returns   an (m x n) matrix Sigma where Sigma[i,j] = K(Xs[:,i], Zs[:,j])
 #
 def rbf_kernel_matrix(Xs, Zs, gamma):
+    if len(Xs.shape) == 1:
+        Xs = tf.reshape(Xs, shape=(-1, 1))
+    try:
+        d1, m = Xs.shape
+    except:
+        a = 2
     d1, m = Xs.shape
+    if len(Zs.shape) == 1:
+        Zs = tf.reshape(Zs, shape=(-1, 1))
     d2, n = Zs.shape
+    #d1, m = Xs.shape
+    #d2, n = Zs.shape
     # assert (d1 == d2), "Dimensions of input vectors must match!"
 
     D = -2 * tf.matmul(Xs, Zs, transpose_a=True)  # Was set to true
@@ -276,8 +286,11 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
             x_best = x_i
             y_best = y_i
             if not isinstance(x_best, float):
-                print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in tf.squeeze(x_best)],
-                                                              float(y_best)))
+                #print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in tf.squeeze(x_best)],
+                #                                              float(y_best)))
+                #print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best],
+                #                                              float(y_best)))
+                pass
             else:
                 print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
 
@@ -511,11 +524,16 @@ def part_2_12(acq_ind):
     acq = acq_funcs[acq_ind]
     Ys = all_Ys[acq_ind]
     Xs = all_Xs[acq_ind]
-    xs_eval = Xs[0]
+    xs_eval = np.arange(-1.0, 1.5, 0.01)
     filename = "PrA5_p2_video.mp4"
-    Xs_numpy = np.transpose(np.array(Xs))
-    Ys_numpy = np.array(Ys)
-    # animate_predictions(objective, acq, gamma, sigma2_noise, Ys_numpy, Xs_numpy, xs_eval, filename)
+    Xs = tf.reshape(tf.stack(Xs), (len(Xs[0]),len(Xs)))
+    Ys = tf.reshape(tf.stack(Ys), (len(Ys),len(Ys[0])))
+    #Xs_numpy = np.transpose(np.array(Xs))
+    #Ys_numpy = np.array(Ys)
+    #Xs = tf.reshape(Xs, shape=(Xs.shape[1], -1))
+    #Ys = tf.reshape(Ys, shape=(Ys.shape[1], -1))
+    animate_predictions(objective, acq, gamma, sigma2_noise, np.asarray(Ys), np.asarray(Xs), xs_eval, filename)
+    #animate_predictions(objective, acq, gamma, sigma2_noise, Ys_numpy, Xs_numpy, xs_eval, filename)
 
     return all_y_best, all_x_best
 
@@ -667,8 +685,8 @@ if __name__ == "__main__":
     # best_x_lcb = bayes_opt(test_objective, d, gamma, sigma2_noise, lcb_acquisition(kappa), random_xs, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
     # print("pi: {}, ei: {}, lcb: {}".format(float(test_objective(best_x_pi)),float(test_objective(best_x_ei)),float(test_objective(best_x_lcb))))
     # RBFkernel = rbf_kernel_matrix(Xs, Xs, gamma)
-    # part_2()
-    part_3()
+    part_2()
+    #part_3()
     a = 2
     # TODO students should implement plotting functions here
 
