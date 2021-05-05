@@ -245,21 +245,10 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
             y_best = y_i
             print("Warmup: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
 
-    def inner_opt_obj(x):
-        # tmpXs = xs.copy()
-        # tmpYs = ys.copy()
-        # mean_variance_func = gp_prediction(Xs, Ys, gamma, sigma2_noise)
-        mean, Sigma = mean_variance_func(x)
-        return acquisition(mean, Sigma, y_best)
-
-    # Xs = tf.transpose(tf.convert_to_tensor(xs,dtype=tf.float64) )
-    # if len(np.shape(Xs)) < 2:
-    #     Xs = tf.reshape(Xs, [1,Xs.shape[0]])
-    # if len(np.shape(ys)) > 2:
-    #     Ys = tf.convert_to_tensor(tf.squeeze(ys,-1),dtype=tf.float64)
-    # else:
-    #     Ys = tf.convert_to_tensor(ys,dtype=tf.float64)
     for i in range(n_warmup, num_iters):
+        def inner_opt_obj(x):
+            mean, Sigma = mean_variance_func(x)
+            return acquisition(y_best, mean, Sigma)
         Xs = tf.transpose(tf.convert_to_tensor(xs, dtype=tf.float64))
         if len(np.shape(Xs)) < 2:
             Xs = tf.reshape(Xs, [1, Xs.shape[0]])
@@ -500,7 +489,7 @@ def part_2_12(acq_ind):
     acq_funcs = [pi_acquisition, ei_acquisition, lcb_acquisition(kappa)]
     acq_func_str = ["Probability of improvement aquisition (pi)",
                     "Expected improvement aquisition (ei)",
-                    "Lower confidence bound (lcb, kappa=", kappa, ")"]
+                    "Lower confidence bound (lcb, kappa=" + kappa + ")"]
 
     # Track previous values
     all_y_best = []
@@ -510,7 +499,7 @@ def part_2_12(acq_ind):
 
     # Run Bayesian opt for each acquisition function
     for i in range(len(acq_funcs)):
-        print("Running Bayesian optimization with acquisition function ", acq_func_str[i], ".")
+        print("Running Bayesian optimization with acquisition function", acq_func_str[i], ".")
         y_best, x_best, Ys, Xs = bayes_opt(objective, d, gamma, sigma2_noise, acq_funcs[i],
                                            random_x, gd_nruns, gd_alpha, gd_niters, n_warmup, num_iters)
         print("\t Best parameter value: ", float(x_best))
