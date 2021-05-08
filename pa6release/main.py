@@ -14,6 +14,7 @@ import scipy
 import matplotlib
 import mnist
 import pickle
+import copy
 matplotlib.use('agg')
 from matplotlib import pyplot
 import threading
@@ -86,19 +87,15 @@ def load_MNIST_dataset():
 def sgd_mss_with_momentum(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs):
     # TODO students should use their implementation from programming assignment 3
     # or adapt this version, which is from my own solution to programming assignment 3
-    models = []
-    (d, n) = Xs.shape
-    V = numpy.zeros(W0.shape)
-    W = W0
-    print("Running minibatch sequential-scan SGD with momentum")
-    for it in tqdm(range(num_epochs)):
-        for ibatch in range(int(n/B)):
-            ii = range(ibatch*B, (ibatch+1)*B)
+    _, n = Xs.shape
+    W = copy.deepcopy(W0)
+    V = 0
+    for t in tqdm(range(num_epochs)):
+        for i in range(int(n / B)):
+            ii = list(range(i * B, i * B + B))
             V = beta * V - alpha * multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)
             W = W + V
-            if ((ibatch+1) % monitor_period == 0):
-                models.append(W)
-    return models
+    return W
 
 
 # SGD + Momentum (No Allocation) => all operations in the inner loop should be a
@@ -119,12 +116,15 @@ def sgd_mss_with_momentum(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs):
 def sgd_mss_with_momentum_noalloc(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs):
     (d, n) = Xs.shape
     (c, d) = W0.shape
+    W = W0
+    V = 0
     # TODO students should initialize the parameter vector W and pre-allocate any needed arrays here
     print("Running minibatch sequential-scan SGD with momentum (no allocation)")
-    for it in tqdm(range(num_epochs)):
-        for ibatch in range(int(n/B)):
-            # ii = range(ibatch*B, (ibatch+1)*B)
-            # TODO this section of code should only use numpy operations with the "out=" argument specified (students should implement this)
+    for t in tqdm(range(num_epochs)):
+        for i in range(int(n / B)):
+            ii = list(range(i * B, i * B + B))
+            numpy.subtract(numpy.multiply(beta, V),numpy.multiply(alpha, multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W)), out=V)
+            numpy.add(W,V,out=V)
     return W
 
 
@@ -218,10 +218,24 @@ def sgd_mss_with_momentum_noalloc_float32(Xs, Ys, gamma, W0, alpha, beta, B, num
 def sgd_mss_with_momentum_threaded_float32(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs, num_threads):
     (d, n) = Xs.shape
     (c, d) = W0.shape
+
     # TODO students should implement this by copying and adapting their 64-bit code
 
+
+def part1(Xs_tr, Ys_tr, Xs_te, Ys_te):
+    (d, n) = Xs.shape
+    (c, n) = Ys.shape
+    alpha = 0.1
+    beta = 0.9
+    B = 16
+    gamma = 0.0001
+    num_epochs = 20
+    W0 = numpy.random.rand((n,))
+    sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha, beta, B, num_epochs)
 
 
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
     # TODO add code to produce figures
+    part1(Xs_tr, Ys_tr, Xs_te, Ys_te)
+
