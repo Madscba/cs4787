@@ -49,3 +49,13 @@ pa4release/release/data/t10k-images-idx3-ubyte.gz
 pa4release/release/data/t10k-labels-idx1-ubyte.gz
 pa4release/release/data/train-images-idx3-ubyte.gz
 pa4release/release/data/train-labels-idx1-ubyte.gz
+pa5release/release/data/MNIST.pickle
+pa5release/release/PrA5_p2_video.mp4
+pa5release/release/PrA5_p2_video_gamma10.mp4
+pa6release/release/data/MNIST.pickle
+pa6release/release/data/t10k-images-idx3-ubyte.gz
+pa6release/release/data/t10k-labels-idx1-ubyte.gz
+pa6release/release/data/train-images-idx3-ubyte.gz
+pa6release/release/data/train-labels-idx1-ubyte.gz
+pa5release/release/PrA5_p2_video.mp4
+pa5release/release/PrA5_p2_video.mp4

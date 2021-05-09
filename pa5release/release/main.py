@@ -244,7 +244,7 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
         if y_i <= y_best:
             x_best = x_i
             y_best = y_i
-            # print("Warmup: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
+            print("Warmup: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
 
     for i in range(n_warmup, num_iters):
         def inner_opt_obj(x):
@@ -282,7 +282,8 @@ def bayes_opt(objective, d, gamma, sigma2_noise, acquisition, random_x, gd_nruns
             #     #                                              float(y_best)))
             #     pass
             # else:
-            #     print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
+            print("Actual bayes: x_i: {}, y_i: {}".format(float(x_best), float(y_best)))
+            # print("Actual bayes: x_i: {}, y_i: {}".format([round(float(x), 3) for x in x_best], float(y_best)))
 
         xs.append(tf.squeeze(tf.convert_to_tensor(x_i, dtype=tf.float64), 1))
         if isinstance(y_i, float):
@@ -593,8 +594,8 @@ def part_2_4(kappa_vals, og_y, og_x):
 def part_2():
     acq_ind_to_video = 0
     acq_ind_to_ex = 0
-    gamma_vals = [1, 20, 100]
-    kappa_vals = [1, 5, 10]
+    gamma_vals = [10**(-2), 1, 100]
+    kappa_vals = [0.1, 1, 5, 10]
 
     # Parts 1 and 2
     all_y_best, all_x_best = part_2_12(acq_ind_to_video)
@@ -603,7 +604,7 @@ def part_2():
     # part_2_3(acq_ind_to_ex, gamma_vals, all_y_best[acq_ind_to_ex], all_x_best[acq_ind_to_ex])
 
     # # Part 4
-    # part_2_4(kappa_vals, all_y_best[2], all_x_best[2])
+    part_2_4(kappa_vals, all_y_best[2], all_x_best[2])
 
 
 def part_3():
