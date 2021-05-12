@@ -18,6 +18,8 @@ import mnist
 import pickle
 matplotlib.use('agg')
 from matplotlib import pyplot
+
+matplotlib.style.use("bmh")
 import threading
 import time
 
@@ -325,15 +327,18 @@ def sgd_mss_with_momentum_threaded_float32(Xs, Ys, gamma, W0, alpha, beta, B, nu
 
 def plot_time(t1s,t2s,B_values,cores=1):
     pyplot.figure(figsize=(12, 8))
-    pyplot.plot(t1s, label="t1")
-    pyplot.plot(t2s, label="t1")
+    pyplot.scatter(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t1s, label="t1")
+    pyplot.scatter(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t2s, label="t2",marker='x')
+    pyplot.plot(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t1s)
+    pyplot.plot(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t2s)
     pyplot.title("Time comparison of preallocation")
-    pyplot.xticks(range(len(B_values)))
+    pyplot.xticks(np.linspace(np.min(B_values),np.max(B_values),len(B_values)),B_values)
     pyplot.xlabel("B_values")
     pyplot.ylabel("Time used (s)")
     pyplot.legend()
     pyplot.savefig(f"runtime_part_cores{cores}")
     pyplot.plot()
+    # pyplot.show()
     # pyplot.clf()
 
 
@@ -345,8 +350,8 @@ def part1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     gamma = 0.0001
     num_epochs = 20
     W0 = numpy.random.rand(c,d)
-    # B_values = [8,16,30,60,200,600,3000]
-    B_values = [8,16]
+    B_values = [8,16,30,64,200,600,3000]
+    # B_values = [8,16]
     t1s = []
     t2s = []
     for B_size in B_values:
@@ -368,7 +373,8 @@ def part1(Xs_tr, Ys_tr, Xs_te, Ys_te):
 
         t1s.append(t1)
         t2s.append(t2)
-    plot_time(t1s,t2s,B_values)
+
+    plot_time(t1s,t2s,B_values,cores=implicit_num_threads)
 
 def part3(Xs_tr, Ys_tr, Xs_te, Ys_te):
     (d, n) = Xs_tr.shape
