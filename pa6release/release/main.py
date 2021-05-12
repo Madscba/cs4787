@@ -4,7 +4,7 @@ import os
 # BEGIN THREAD SETTINGS this sets the number of threads used by numpy in the program (should be set to 1 for Parts 1 and 3)
 import numpy as np
 
-implicit_num_threads = 1
+implicit_num_threads = 4
 os.environ["OMP_NUM_THREADS"] = str(implicit_num_threads)
 os.environ["MKL_NUM_THREADS"] = str(implicit_num_threads)
 os.environ["OPENBLAS_NUM_THREADS"] = str(implicit_num_threads)
@@ -45,6 +45,7 @@ def multinomial_logreg_grad_i(Xs, Ys, ii, gamma, W):
 
 def load_MNIST_dataset():
     PICKLE_FILE = os.path.join(mnist_data_directory, "MNIST.pickle")
+    PICKLE_FILE = "C:\\Users\\hyun0\\Documents\\CS4787\\cs4787\\pa3release\\data\\MNIST.pickle"
     try:
         dataset = pickle.load(open(PICKLE_FILE, 'rb'))
     except:
@@ -128,7 +129,6 @@ def sgd_mss_with_momentum_noalloc(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs)
     # cb1, cb2, b1, cd1,cd2
 
     cb1 = numpy.zeros((c,B))
-    cb2 = numpy.zeros((c, B))
     b1 = numpy.zeros((B))
     cd1 = numpy.zeros((c, d))
     cd2 = numpy.zeros((c, d))
@@ -208,18 +208,52 @@ def sgd_mss_with_momentum_threaded(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs
     (d, n) = Xs.shape
     (c, d) = W0.shape
     # TODO perform any global setup/initialization/allocation (students should implement this)
-
+    W = numpy.zeros(W0.shape)
+    V = numpy.zeros(W0.shape)
+    B_prime = int(B / num_threads)
+    gradients = numpy.zeros((num_threads, W0.shape[0], W0.shape[1]))
+    sum_gradients = numpy.zeros(W0.shape)
     # construct the barrier object
     iter_barrier = threading.Barrier(num_threads + 1)
+
+    Xs_splits = []
+    Ys_splits = []
+    # n = 256 = 2^8
+    # B = 16 = 2^4
+    # num_threads = 4
+
+    for i in range(int(n / B * num_threads)):
+        Xs_splits.append(numpy.ascontiguousarray(Xs[:, i * B_prime:i * B_prime + B_prime]))
+        Ys_splits.append(Ys[:, i * B_prime:i * B_prime + B_prime])
 
     # a function for each thread to run
     def thread_main(ithread):
         # TODO perform any per-thread allocations
+
+        cb1 = numpy.zeros((c, B_prime))
+        b1 = numpy.zeros((B_prime))
+        cd1 = numpy.zeros((c, d))
+        cd2 = numpy.zeros((c, d))
         for it in range(num_epochs):
             for ibatch in range(int(n/B)):
                 # TODO work done by thread in each iteration; this section of code should primarily use numpy operations with the "out=" argument specified (students should implement this)
-                # ii = range(ibatch*B + ithread*Bt, ibatch*B + (ithread+1)*Bt)
+                Xs_split = Xs_splits[ibatch*num_threads+ithread]
+                Ys_split = Ys_splits[ibatch*num_threads+ithread]
+
+                numpy.dot(W, Xs_split, out=cb1)  # (c,d) x (d,b) = (c,b) cb1
+                numpy.amax(cb1, axis=0, out=b1)  # (c,b) cb2
+                numpy.subtract(cb1, b1, out=cb1)  # (c,b) cb1
+                numpy.exp(cb1, out=cb1)  # (c,b) cb1
+                numpy.sum(cb1, axis=0, out=b1)  # vector (b) (columns) b1
+                numpy.divide(cb1, b1, out=cb1)  # (c,b) cb1
+                numpy.subtract(cb1, Ys_split, out=cb1)  # (c,b) cb1
+                numpy.multiply(gamma, W, out=cd1)  # (c,d) cd1
+                numpy.dot(cb1, Xs_split.transpose(), out=cd2)  # (c,b) x (b,d) = (c,d) cd2
+                numpy.divide(cd2, B, out=cd2)  # (c,d) cd2
+                numpy.add(cd2, cd1, out=cd1)  # (c,d)  cd1
+                gradients[ithread, :, :] = cd1
                 iter_barrier.wait()
+                # Wait until new global gradient has been calculated
                 iter_barrier.wait()
 
     worker_threads = [threading.Thread(target=thread_main, args=(it,)) for it in range(num_threads)]
@@ -233,6 +267,13 @@ def sgd_mss_with_momentum_threaded(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs
         for ibatch in range(int(n/B)):
             iter_barrier.wait()
             # TODO work done on a single thread at each iteration; this section of code should primarily use numpy operations with the "out=" argument specified (students should implement this)
+            numpy.sum(gradients, axis=0, out=sum_gradients)
+            # update V
+            numpy.multiply(beta, V, out=V)
+            numpy.multiply(alpha, sum_gradients, out=sum_gradients)
+            numpy.subtract(V, sum_gradients, out=V)
+            # update W
+            numpy.add(W, V, out=W)
             iter_barrier.wait()
 
     for t in worker_threads:
@@ -295,6 +336,7 @@ def plot_time(t1s,t2s,B_values,cores=1):
     pyplot.plot()
     # pyplot.clf()
 
+
 def part1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     (d, n) = Xs_tr.shape
     (c, n) = Ys_tr.shape
@@ -310,7 +352,7 @@ def part1(Xs_tr, Ys_tr, Xs_te, Ys_te):
     for B_size in B_values:
         B = B_size
         t1 = time.time()
-        model1_w = sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha, beta, B, num_epochs)
+        # model1_w = sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha, beta, B, num_epochs)
         t1 = time.time() - t1
         print("time for non-preallocated:",t1)
 
@@ -319,20 +361,51 @@ def part1(Xs_tr, Ys_tr, Xs_te, Ys_te):
         t2 = time.time() - t2
         print("time for preallocated:",t2)
 
-        err1 = multinomial_logreg_error(Xs_te,Ys_te,model1_w)
+        # err1 = multinomial_logreg_error(Xs_te,Ys_te,model1_w)
         err2 = multinomial_logreg_error(Xs_te,Ys_te,model2_w)
 
-        print("error1: ",err1, ". error2 ",err2)
+        # print("error1: ",err1, ". error2 ",err2)
 
         t1s.append(t1)
         t2s.append(t2)
     plot_time(t1s,t2s,B_values)
 
+def part3(Xs_tr, Ys_tr, Xs_te, Ys_te):
+    (d, n) = Xs_tr.shape
+    (c, n) = Ys_tr.shape
+    alpha = 0.1
+    beta = 0.9
+    gamma = 0.0001
+    num_epochs = 20
+    n_threads = 4
+    W0 = numpy.random.rand(c,d)
+    # B_values = [8,16,30,60,200,600,3000]
+    B_values = [8,16]
+    t1s = []
+    t2s = []
+    for B_size in B_values:
+        B = B_size
+        t1 = time.time()
+        model1_w = sgd_mss_with_momentum_threaded(Xs_tr, Ys_tr, gamma, W0, alpha, beta, B, num_epochs, n_threads)
+        t1 = time.time() - t1
+        print("time for non-preallocated:",t1)
 
+        # t2 = time.time()
+        # model2_w = sgd_mss_with_momentum_noalloc(Xs_tr, Ys_tr, gamma, W0, alpha, beta, B, num_epochs)
+        # t2 = time.time() - t2
+        # print("time for preallocated:",t2)
+
+        err1 = multinomial_logreg_error(Xs_te,Ys_te,model1_w)
+        # err2 = multinomial_logreg_error(Xs_te,Ys_te,model2_w)
+
+        print("error1: ",err1)
+
+        t1s.append(t1)
+    # plot_time(t1s,B_values)
 
 
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
-    part1(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    part3(Xs_tr, Ys_tr, Xs_te, Ys_te)
 
     # TODO add code to produce figures
