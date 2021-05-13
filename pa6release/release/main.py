@@ -303,12 +303,74 @@ def sgd_mss_with_momentum_threaded(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs
 def sgd_mss_with_momentum_noalloc_float32(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs):
     (d, n) = Xs.shape
     (c, d) = W0.shape
+    # TODO students should initialize the parameter vector W and pre-allocate any needed arrays here
+    W = numpy.zeros(W0.shape, dtype='numpy.float32')
+    V = numpy.zeros(W0.shape, dtype='numpy.float32')
+
+    # cb1, cb2, b1, cd1,cd2
+
+    cb1 = numpy.zeros((c, B), dtype='numpy.float32')
+    b1 = numpy.zeros((B), dtype='numpy.float32')
+    cd1 = numpy.zeros((c, d), dtype='numpy.float32')
+    cd2 = numpy.zeros((c, d), dtype='numpy.float32')
+
+    # intermediate_matrix2 = numpy.zeros((c, d))
+    # XS_slice = numpy.ascontiguousarray(Xs[:, ii])
+
+    Xs_splits = []
+    Ys_splits = []
+    for i in range(int(n / B)):
+        Xs_splits.append(numpy.ascontiguousarray(Xs[:, i * B:i * B + B]))
+        Ys_splits.append(Ys[:, i * B:i * B + B])
+
+    print("Running minibatch sequential-scan SGD with momentum (no allocation)")
+    for it in tqdm(range(num_epochs)):
+        for ibatch in range(int(n / B)):
+            # TODO this section of code should only use numpy operations with the "out=" argument specified (students should implement this)
+            XS_split = Xs_splits[ibatch]
+            Ys_split = Ys_splits[ibatch]
+
+            numpy.dot(W, XS_split, out=cb1)  # (c,d) x (d,b) = (c,b) cb1
+            numpy.amax(cb1, axis=0, out=b1)  # (c,b) cb2
+            numpy.subtract(cb1, b1, out=cb1)  # (c,b) cb1
+            numpy.exp(cb1, out=cb1)  # (c,b) cb1
+            numpy.sum(cb1, axis=0, out=b1)  # vector (b) (columns) b1
+            numpy.divide(cb1, b1, out=cb1)  # (c,b) cb1
+            numpy.subtract(cb1, Ys_split, out=cb1)  # (c,b) cb1
+            numpy.multiply(gamma, W, out=cd1)  # (c,d) cd1
+            numpy.dot(cb1, XS_split.transpose(), out=cd2)  # (c,b) x (b,d) = (c,d) cd2
+            numpy.divide(cd2, B, out=cd2)  # (c,d) cd2
+            numpy.add(cd2, cd1, out=cd1)  # (c,d)  cd1
+            numpy.multiply(beta, V, out=cd2)  # (c, d)  cd2
+            numpy.multiply(alpha, cd1, out=cd1)  # (c,d)  cd1
+            numpy.subtract(cd2, cd1, out=V)  # (c,d) V
+            numpy.add(W, V, out=W)  # (c,d)  W
+    return W
+
+
+# SGD + Momentum (threaded, float32)
+#
+# Xs              training examples (d * n)
+# Ys              training labels   (c * n)
+# gamma           L2 regularization constant
+# W0              the initial value of the parameters (c * d)
+# alpha           step size/learning rate
+# beta            momentum hyperparameter
+# B               minibatch size
+# num_epochs      number of epochs (passes through the training set) to run
+# monitor_period  how frequently, in terms of batches (not epochs) to output the parameter vector
+# num_threads     how many threads to use
+#
+# returns         the final model arrived at at the end of training
+def sgd_mss_with_momentum_threaded_float32(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs, num_threads):
+    (d, n) = Xs.shape
+    (c, d) = W0.shape
     # TODO perform any global setup/initialization/allocation (students should implement this)
-    W = numpy.zeros(W0.shape)
-    V = numpy.zeros(W0.shape)
+    W = numpy.zeros(W0.shape, dtype='numpy.float32')
+    V = numpy.zeros(W0.shape, dtype='numpy.float32')
     B_prime = int(B / num_threads)
-    gradients = numpy.zeros((num_threads, W0.shape[0], W0.shape[1]))
-    sum_gradients = numpy.zeros(W0.shape)
+    gradients = numpy.zeros((num_threads, W0.shape[0], W0.shape[1]), dtype='numpy.float32')
+    sum_gradients = numpy.zeros(W0.shape, dtype='numpy.float32')
     # construct the barrier object
     iter_barrier = threading.Barrier(num_threads + 1)
 
@@ -326,10 +388,10 @@ def sgd_mss_with_momentum_noalloc_float32(Xs, Ys, gamma, W0, alpha, beta, B, num
     def thread_main(ithread):
         # TODO perform any per-thread allocations
 
-        cb1 = numpy.zeros((c, B_prime))
-        b1 = numpy.zeros((B_prime))
-        cd1 = numpy.zeros((c, d))
-        cd2 = numpy.zeros((c, d))
+        cb1 = numpy.zeros((c, B_prime), dtype='numpy.float32')
+        b1 = numpy.zeros((B_prime), dtype='numpy.float32')
+        cd1 = numpy.zeros((c, d), dtype='numpy.float32')
+        cd2 = numpy.zeros((c, d), dtype='numpy.float32')
         for it in range(num_epochs):
             for ibatch in range(int(n / B)):
                 # TODO work done by thread in each iteration; this section of code should primarily use numpy operations with the "out=" argument specified (students should implement this)
@@ -378,32 +440,15 @@ def sgd_mss_with_momentum_noalloc_float32(Xs, Ys, gamma, W0, alpha, beta, B, num
     # return the learned model
     return W
 
-
-# SGD + Momentum (threaded, float32)
-#
-# Xs              training examples (d * n)
-# Ys              training labels   (c * n)
-# gamma           L2 regularization constant
-# W0              the initial value of the parameters (c * d)
-# alpha           step size/learning rate
-# beta            momentum hyperparameter
-# B               minibatch size
-# num_epochs      number of epochs (passes through the training set) to run
-# monitor_period  how frequently, in terms of batches (not epochs) to output the parameter vector
-# num_threads     how many threads to use
-#
-# returns         the final model arrived at at the end of training
-def sgd_mss_with_momentum_threaded_float32(Xs, Ys, gamma, W0, alpha, beta, B, num_epochs, num_threads):
-    (d, n) = Xs.shape
-    (c, d) = W0.shape
-    # TODO students should implement this by copying and adapting their 64-bit code
-
 def plot_time(t1s,t2s,B_values,cores=1):
     pyplot.figure(figsize=(12, 8))
     pyplot.scatter(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t1s, label="t1")
     pyplot.scatter(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t2s, label="t2",marker='x')
-    pyplot.plot(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t1s)
-    pyplot.plot(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t2s)
+    t1_plot = pyplot.plot(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t1s)
+    t1_plot.set_label('w/o preallocation & w/o manual threading')
+    t2_plot = pyplot.plot(np.linspace(np.min(B_values),np.max(B_values),len(B_values)), t2s)
+    t2_plot.set_label('w/ preallocation & w/o manual threading')
+
     pyplot.title("Time comparison of preallocation")
     pyplot.xticks(np.linspace(np.min(B_values),np.max(B_values),len(B_values)),B_values)
     pyplot.xlabel("B_values")
@@ -414,6 +459,25 @@ def plot_time(t1s,t2s,B_values,cores=1):
     # pyplot.show()
     # pyplot.clf()
 
+def plot_time_pt2(t1s_single_core, t2s_single_core, t1s_multi_core, t2s_multi_core, B_values, cores=implicit_num_threads):
+    pyplot.figure(figsize=(12, 8))
+    t1_plot, = pyplot.plot(np.linspace(np.min(B_values), np.max(B_values), len(B_values)), t1s_single_core)
+    t1_plot.set_label(f"w/o preallocation w/ 1 core")
+    t2_plot, = pyplot.plot(np.linspace(np.min(B_values), np.max(B_values), len(B_values)), t2s_single_core)
+    t2_plot.set_label(f"w/ preallocation w/ 1 core")
+    t3_plot, = pyplot.plot(np.linspace(np.min(B_values), np.max(B_values), len(B_values)), t1s_multi_core)
+    t3_plot.set_label(f"w/o preallocation w/ 4 cores")
+    t4_plot, = pyplot.plot(np.linspace(np.min(B_values), np.max(B_values), len(B_values)), t2s_multi_core)
+    t4_plot.set_label(f"w preallocation w/ 4 cores")
+    pyplot.title("Time comparisons of preallocation and threading")
+    pyplot.xticks(np.linspace(np.min(B_values), np.max(B_values), len(B_values)), B_values)
+    pyplot.xlabel("B_values")
+    pyplot.ylabel("Time used (s)")
+    pyplot.legend()
+    pyplot.savefig("Impact of Preallocation and Number of Cores")
+    pyplot.plot()
+    # pyplot.show()
+    # pyplot.clf()
 
 def plot_time_pt3(t1s, t2s, t3s, B_values, cores=1):
     pyplot.figure(figsize=(12, 8))
@@ -431,13 +495,13 @@ def plot_time_pt3(t1s, t2s, t3s, B_values, cores=1):
     pyplot.xlabel("B_values")
     pyplot.ylabel("Time used (s)")
     pyplot.legend()
-    pyplot.savefig(f"runtime_part_cores{cores}")
+    pyplot.savefig(f"pt2runtime_part_cores{cores}")
     pyplot.plot()
     # pyplot.show()
     # pyplot.clf()
 
 
-def part1(Xs_tr, Ys_tr, Xs_te, Ys_te):
+def part12(Xs_tr, Ys_tr, Xs_te, Ys_te):
     (d, n) = Xs_tr.shape
     (c, n) = Ys_tr.shape
     alpha = 0.1
@@ -468,8 +532,16 @@ def part1(Xs_tr, Ys_tr, Xs_te, Ys_te):
 
         t1s.append(t1)
         t2s.append(t2)
+    t1s = numpy.asarray(t1s)
+    t2s = numpy.asarray(t2s)
+    t1s_single_core_filepath = 't1s_single_core.npy'
+    t2s_single_core_filepath = 't2s_single_core.npy'
+    numpy.save(t1s_single_core_filepath, t1s)
+    numpy.save(t2s_single_core_filepath, t2s)
+    # t1s_single_core = numpy.load(t1s_single_core_filepath)
+    # t2s_single_core = numpy.load(t2s_single_core_filepath)
 
-    plot_time(t1s,t2s,B_values,cores=implicit_num_threads)
+    # plot_time_pt2(t1s_single_core, t2s_single_core, t1s, t2s, B_values, 4)
 
 def part3(Xs_tr, Ys_tr, Xs_te, Ys_te):
     (d, n) = Xs_tr.shape
@@ -532,7 +604,7 @@ def part4(Xs_tr, Ys_tr, Xs_te, Ys_te):
         B = B_size
         print("Batch size: ", B_size)
         t1 = time.time()
-        model1_w = sgd_mss_with_momentum(Xs_tr, Ys_tr, gamma, W0, alpha, beta, B, num_epochs)
+        model1_w = sgd_mss_with_momentum_noalloc_float32(Xs_tr, Ys_tr, gamma, W0, alpha, beta, B, num_epochs)
         t1 = time.time() - t1
         print("\ttime for sgd_mss_with_momentum:", t1)
 
@@ -559,8 +631,8 @@ def part4(Xs_tr, Ys_tr, Xs_te, Ys_te):
 
 if __name__ == "__main__":
     (Xs_tr, Ys_tr, Xs_te, Ys_te) = load_MNIST_dataset()
-    # part1(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    part12(Xs_tr, Ys_tr, Xs_te, Ys_te)
     # part3(Xs_tr, Ys_tr, Xs_te, Ys_te)
-    part4(Xs_tr, Ys_tr, Xs_te, Ys_te)
+    # part4(Xs_tr, Ys_tr, Xs_te, Ys_te)
 
     # TODO add code to produce figures
